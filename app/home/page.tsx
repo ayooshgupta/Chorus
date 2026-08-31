@@ -83,7 +83,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <TopBar email={session.email} active={me} memberships={session.memberships} />
+      <TopBar email={session.email} avatarUrl={session.avatarUrl} active={me} memberships={session.memberships} />
       <main>
         <PageHeader
           householdName={me.householdName}

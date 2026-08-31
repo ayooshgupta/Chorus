@@ -12,6 +12,7 @@ export type Membership = {
 
 export type Session = {
   email: string;
+  avatarUrl: string;
   active: Membership;
   memberships: Membership[];
 };
@@ -47,7 +48,7 @@ export async function loadSession(): Promise<Session | null> {
   const preferred = store.get(ACTIVE_HOUSEHOLD_COOKIE)?.value;
   const active = memberships.find((m) => m.household_id === preferred) ?? memberships[0];
 
-  return { email: user.email ?? '', active, memberships };
+  return { email: user.email ?? '', avatarUrl: (user.user_metadata?.avatar_url as string) ?? '', active, memberships };
 }
 
 export async function currentMember() {

@@ -15,10 +15,12 @@ export type HeaderMembership = {
 
 export default function TopBar({
   email,
+  avatarUrl,
   active,
   memberships
 }: {
   email: string;
+  avatarUrl: string;
   active: HeaderMembership;
   memberships: HeaderMembership[];
 }) {
@@ -73,9 +75,18 @@ export default function TopBar({
         </span>
 
         <button className="avatar-btn" aria-label="Your profile" onClick={() => setOpen(true)}>
-          <span className="dot" style={{ background: active.colour, width: 34, height: 34 }}>
-            {active.display_name.slice(0, 1).toUpperCase()}
-          </span>
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={active.display_name}
+              referrerPolicy="no-referrer"
+              style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover' }}
+            />
+          ) : (
+            <span className="dot" style={{ background: active.colour, width: 34, height: 34 }}>
+              {active.display_name.slice(0, 1).toUpperCase()}
+            </span>
+          )}
         </button>
       </header>
 
@@ -91,12 +102,21 @@ export default function TopBar({
             <div className="grab" />
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-              <span
-                className="dot"
-                style={{ background: colour, width: 44, height: 44, fontSize: 16 }}
-              >
-                {(name || active.display_name).slice(0, 1).toUpperCase()}
-              </span>
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={active.display_name}
+                  referrerPolicy="no-referrer"
+                  style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                />
+              ) : (
+                <span
+                  className="dot"
+                  style={{ background: colour, width: 44, height: 44, fontSize: 16 }}
+                >
+                  {(name || active.display_name).slice(0, 1).toUpperCase()}
+                </span>
+              )}
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 17, fontWeight: 600 }}>{active.display_name}</div>
                 <div className="meta">{email}</div>
