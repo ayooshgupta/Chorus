@@ -155,7 +155,7 @@ export default async function Household() {
           </Link>
         </div>
         <p className="sub" style={{ fontSize: 13, fontWeight: 500, color: 'var(--accent-text)' }}>
-          Household
+          Chores
         </p>
         <p className="sub" style={{ marginTop: -14 }}>
           {members.length} {members.length === 1 ? 'member' : 'members'} · {chores.length}{' '}
@@ -180,14 +180,14 @@ export default async function Household() {
             {plannedTotal > 0 ? (
               <>
                 <div style={{ height: 12 }} />
-                <span className="label" style={{ fontSize: 11 }}>
-                  Planned split
+                <span className="label">
+                  Planned · next week
                 </span>
-                <div className="bar slim">
+                <div className="bar">
                   {members.map((m) => {
                     const share = ((planned.get(m.id) ?? 0) / plannedTotal) * 100;
                     return share > 0 ? (
-                      <div key={m.id} style={{ width: `${share}%`, background: m.colour, opacity: 0.55 }} />
+                      <div key={m.id} style={{ width: `${share}%`, background: m.colour }} />
                     ) : null;
                   })}
                 </div>
@@ -213,7 +213,7 @@ export default async function Household() {
               ))}
             </div>
             {notch !== null ? (
-              <p className="hint">The marker on the top bar is your planned split.</p>
+              <p className="hint">The marker on the effort bar is your planned split.</p>
             ) : null}
           </div>
         ) : null}
