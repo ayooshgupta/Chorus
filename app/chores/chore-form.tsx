@@ -193,9 +193,9 @@ export default function ChoreForm({
   return (
     <main style={{ paddingTop: 30 }}>
       <a href="/household" className="back">
-        ← Household
+        ←
       </a>
-      <h1>{draft.id ? 'Edit chore' : 'New chore'}</h1>
+      <h1 style={{ marginTop: 6 }}>{draft.id ? 'Edit chore' : 'New chore'}</h1>
       {draft.id ? (
         <p className="sub">
           {lastDone

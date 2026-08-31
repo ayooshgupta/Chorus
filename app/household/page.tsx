@@ -154,10 +154,7 @@ export default async function Household() {
             <GearIcon />
           </Link>
         </div>
-        <p className="sub" style={{ fontSize: 13, fontWeight: 500, color: 'var(--accent-text)' }}>
-          Chores
-        </p>
-        <p className="sub" style={{ marginTop: -14 }}>
+        <p className="sub">
           {members.length} {members.length === 1 ? 'member' : 'members'} · {chores.length}{' '}
           {chores.length === 1 ? 'chore' : 'chores'}
         </p>
@@ -208,7 +205,7 @@ export default async function Household() {
                 <span key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ width: 9, height: 9, borderRadius: '50%', background: m.colour }} />
                   {m.display_name}
-                  {plannedTotal > 0 ? ` · ${formatLoad(planned.get(m.id) ?? 0)} planned` : ''}
+                  {plannedTotal > 0 ? ` · ${formatLoad(planned.get(m.id) ?? 0)}/wk` : ''}
                 </span>
               ))}
             </div>
@@ -226,7 +223,7 @@ export default async function Household() {
             margin: '30px 0 4px'
           }}
         >
-          <h2 style={{ margin: 0 }}>Chores</h2>
+          <span className="section-label" style={{ margin: 0 }}>Chores</span>
           <Link
             href="/chores/new"
             style={{

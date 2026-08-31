@@ -54,7 +54,10 @@ export default async function ActivityPage() {
     <>
       <TopBar email={session.email} active={session.active} memberships={session.memberships} />
       <main>
-        <PageHeader householdName={session.active.householdName} subheading="Activity" />
+        <PageHeader
+          householdName={session.active.householdName}
+          stat={items.length > 0 ? `Last ${items.length} updates` : undefined}
+        />
 
         <div className="card">
           {items.length === 0 ? (

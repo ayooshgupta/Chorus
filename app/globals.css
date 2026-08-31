@@ -90,10 +90,10 @@ h1 {
 }
 
 h2 {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
   margin: 0 0 10px;
-  color: var(--text-soft);
+  color: var(--accent-text);
 }
 
 p.sub {
@@ -325,10 +325,6 @@ button.google {
   background: var(--surface-alt);
 }
 
-.bar.slim {
-  height: 6px;
-}
-
 .notch {
   position: absolute;
   top: -4px;
@@ -391,11 +387,10 @@ button.google {
   border: none;
   padding: 0;
   margin: 24px 2px 8px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-faint);
+  letter-spacing: 0;
+  color: var(--accent-text);
   text-align: left;
 }
 
@@ -485,10 +480,10 @@ button.google {
 }
 
 .section-label {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   margin: 22px 0 6px;
-  color: var(--text-soft);
+  color: var(--accent-text);
 }
 
 .section-label.late {

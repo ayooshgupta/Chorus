@@ -23,9 +23,9 @@ export default async function HouseholdSettings() {
     <>
       <main style={{ paddingTop: 30 }}>
         <a href="/household" className="back">
-          ← Household
+          ←
         </a>
-        <h1>Household settings</h1>
+        <h1 style={{ marginTop: 6 }}>Settings</h1>
         <div style={{ height: 10 }} />
 
         <SettingsForm currentName={me.householdName} />

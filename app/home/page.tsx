@@ -85,12 +85,14 @@ export default async function HomePage() {
     <>
       <TopBar email={session.email} active={me} memberships={session.memberships} />
       <main>
-        <PageHeader householdName={me.householdName} subheading="Board" />
-        <p className="sub" style={{ marginTop: -14 }}>
-          {tasks.length === 0
-            ? 'Nothing due. Enjoy it.'
-            : `${tasks.length} ${tasks.length === 1 ? 'thing' : 'things'} to get to`}
-        </p>
+        <PageHeader
+          householdName={me.householdName}
+          stat={
+            tasks.length === 0
+              ? 'Nothing due. Enjoy it.'
+              : `${tasks.length} ${tasks.length === 1 ? 'thing' : 'things'} to get to`
+          }
+        />
 
         <Board
           tasks={tasks}
