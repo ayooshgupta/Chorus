@@ -18,7 +18,7 @@ export default function Nav() {
       </Link>
       <Link href="/household" data-on={house} prefetch>
         <TabIcon kind="household" on={house} />
-        Household
+        Chores
       </Link>
       <Link href="/activity" data-on={feed} prefetch>
         <TabIcon kind="activity" on={feed} />
