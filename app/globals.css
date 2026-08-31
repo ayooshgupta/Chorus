@@ -390,7 +390,7 @@ button.google {
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0;
-  color: var(--accent-text);
+  color: var(--text-soft);
   text-align: left;
 }
 
@@ -648,4 +648,28 @@ button.google {
   padding: 26px 10px;
   color: var(--text-faint);
   font-size: 14px;
+}
+
+.fab {
+  position: fixed;
+  bottom: 84px;
+  right: max(16px, calc((100vw - 480px) / 2 + 16px));
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 26px;
+  font-weight: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 20;
+  line-height: 1;
+}
+
+.fab:active {
+  transform: scale(0.93);
 }

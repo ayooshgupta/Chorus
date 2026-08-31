@@ -215,30 +215,6 @@ export default async function Household() {
           </div>
         ) : null}
 
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            margin: '30px 0 4px'
-          }}
-        >
-          <span className="section-label" style={{ margin: 0 }}>Chores</span>
-          <Link
-            href="/chores/new"
-            style={{
-              fontSize: 13,
-              color: 'var(--text-soft)',
-              textDecoration: 'none',
-              border: '1px solid var(--line-strong)',
-              borderRadius: 'var(--radius)',
-              padding: '5px 11px'
-            }}
-          >
-            Add
-          </Link>
-        </div>
-
         {chores.length === 0 ? (
           <div className="card">
             <div className="empty">No chores yet. Add the first one.</div>
@@ -289,6 +265,9 @@ export default async function Household() {
           ))
         )}
       </main>
+      <Link href="/chores/new" className="fab" aria-label="Add chore">
+        +
+      </Link>
       <Nav />
     </>
   );
