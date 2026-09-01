@@ -87,10 +87,10 @@ export default function Board({
     if (removes) setGone((g) => [...g, taskId]);
     setOpen(null);
     setShowHandOff(false);
+    if (toastData) showToast(toastData);
 
     startTransition(async () => {
       await fn();
-      if (toastData) showToast(toastData);
       router.refresh();
     });
   }
