@@ -359,6 +359,9 @@ create policy activity_select on activity for select to authenticated
 create policy activity_insert on activity for insert to authenticated
   with check (household_id in (select my_household_ids()));
 
+create policy activity_delete on activity for delete to authenticated
+  using (household_id in (select my_household_ids()));
+
 -- ============================================================
 -- Scheduled jobs
 -- ============================================================
