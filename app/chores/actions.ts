@@ -143,14 +143,25 @@ export async function reassignCredit(occurrenceId: string, newMemberIds: string[
 
   if (error) return { error: error.message };
 
-  // Update the activity entry too
+  // Update the activity entry — preserve the chore name from existing detail
+  const { data: actRow } = await supabase
+    .from('activity')
+    .select('detail')
+    .eq('occurrence_id', occurrenceId)
+    .eq('action', 'completed')
+    .maybeSingle();
+
+  const existingDetail = (actRow?.detail as Record<string, unknown>) ?? {};
+  const updatedDetail = {
+    name: existingDetail.name,
+    ...(newMemberIds.length > 1 ? { shared: true } : {})
+  };
+
   await supabase
     .from('activity')
     .update({
       actor_member_id: newMemberIds[0],
-      detail: newMemberIds.length > 1
-        ? supabase.rpc ? { shared: true } : { shared: true }
-        : undefined
+      detail: updatedDetail
     })
     .eq('occurrence_id', occurrenceId)
     .eq('action', 'completed');
