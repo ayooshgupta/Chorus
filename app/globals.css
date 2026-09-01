@@ -14,6 +14,22 @@
   --radius: 10px;
 }
 
+[data-theme='dark'] {
+  --bg: #1a1918;
+  --surface: #242320;
+  --surface-alt: #2e2d2a;
+  --text: #e8e6e1;
+  --text-soft: #9b978f;
+  --text-faint: #6b6862;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --accent: #2db88a;
+  --accent-bg: #1d3a2f;
+  --accent-text: #2db88a;
+  --danger: #e05a45;
+  color-scheme: dark;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -147,7 +163,7 @@ button {
   padding: 13px 18px;
   border-radius: var(--radius);
   border: 1px solid transparent;
-  background: var(--text);
+  background: var(--accent);
   color: #fff;
   cursor: pointer;
   width: 100%;
@@ -681,6 +697,42 @@ button.google {
   line-height: 1;
 }
 
+[data-theme='dark'] .fab {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
 .fab:active {
   transform: scale(0.93);
+}
+
+.theme-toggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.theme-opt {
+  flex: 1;
+  padding: 9px 0;
+  font-size: 13px;
+  font-weight: 500;
+  background: transparent;
+  color: var(--text-soft);
+  border: none;
+  border-right: 1px solid var(--line-strong);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.theme-opt:last-child {
+  border-right: none;
+}
+
+.theme-opt[data-on='true'] {
+  background: var(--accent-bg);
+  color: var(--accent-text);
+  font-weight: 600;
 }

@@ -31,6 +31,24 @@ export default function TopBar({
   const [colour, setColour] = useState(active.colour);
   const [busy, setBusy] = useState(false);
 
+  function getTheme(): 'light' | 'dark' | 'system' {
+    if (typeof document === 'undefined') return 'system';
+    const stored = document.cookie.match(/(?:^|; )chorus-theme=(\w+)/)?.[1];
+    return (stored as 'light' | 'dark' | 'system') ?? 'system';
+  }
+  const [theme, setThemeState] = useState<'light' | 'dark' | 'system'>(getTheme);
+
+  function applyTheme(choice: 'light' | 'dark' | 'system') {
+    setThemeState(choice);
+    document.cookie = `chorus-theme=${choice};path=/;max-age=31536000;SameSite=Lax`;
+    const resolved = choice === 'system'
+      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      : choice;
+    document.documentElement.setAttribute('data-theme', resolved);
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', resolved === 'dark' ? '#1a1918' : '#faf9f7');
+  }
+
   const palette = memberships.slice(0, 3).map((m) => m.colour);
   while (palette.length < 3) palette.push('#c9c6bf');
 
@@ -150,7 +168,7 @@ export default function TopBar({
                           borderRadius: '50%',
                           padding: 0,
                           background: c.hex,
-                          border: colour === c.hex ? '2px solid #22201d' : '2px solid transparent'
+                          border: colour === c.hex ? '2px solid var(--text)' : '2px solid transparent'
                         }}
                       />
                     ))}
@@ -198,7 +216,21 @@ export default function TopBar({
                 <button className="ghost" onClick={() => setEditing(true)}>
                   Profile settings
                 </button>
-                <div style={{ height: 8 }} />
+                <div style={{ height: 12 }} />
+                <span className="label">Appearance</span>
+                <div className="theme-toggle">
+                  {(['light', 'dark', 'system'] as const).map((opt) => (
+                    <button
+                      key={opt}
+                      className="theme-opt"
+                      data-on={theme === opt}
+                      onClick={() => applyTheme(opt)}
+                    >
+                      {opt === 'light' ? 'Light' : opt === 'dark' ? 'Dark' : 'System'}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ height: 12 }} />
                 <button className="ghost" onClick={() => router.push('/setup?new=1')}>
                   Create another household
                 </button>
