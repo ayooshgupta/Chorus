@@ -137,14 +137,15 @@ export default function Board({
                   <button
                     className="tick"
                     aria-label={`Complete ${task.name}`}
-                    onClick={() =>
+                    onClick={() =>{
+                      const myName = members.find((m) => m.id === meId)?.name ?? 'you';
                       act(task.id, () => completeTask(task.id), true, {
                         id: task.id,
                         label: task.name,
-                        by: task.ownerName ?? 'you',
+                        by: myName,
                         kind: 'completed'
-                      })
-                    }
+                      });
+                    }}
                   >
                     <span
                       className="ring"
