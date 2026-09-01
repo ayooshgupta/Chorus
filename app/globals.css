@@ -12,6 +12,7 @@
   --accent-text: #0f6e56;
   --danger: #c2412c;
   --radius: 10px;
+  --nav-bg: rgba(255, 255, 255, 0.94);
 }
 
 [data-theme='dark'] {
@@ -27,6 +28,7 @@
   --accent-bg: #1d3a2f;
   --accent-text: #2db88a;
   --danger: #e05a45;
+  --nav-bg: rgba(26, 25, 24, 0.94);
   color-scheme: dark;
 }
 
@@ -524,7 +526,7 @@ button.google {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--nav-bg);
   backdrop-filter: blur(8px);
   border-top: 1px solid var(--line);
   display: flex;
