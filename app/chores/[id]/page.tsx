@@ -40,7 +40,7 @@ export default async function EditChore({ params }: { params: Promise<{ id: stri
         .not('room', 'is', null),
       supabase
         .from('occurrences')
-        .select('original_due_on, status, completed_by')
+        .select('id, original_due_on, status, completed_by')
         .eq('chore_id', id)
         .neq('status', 'open')
         .order('original_due_on', { ascending: false })
@@ -58,9 +58,11 @@ export default async function EditChore({ params }: { params: Promise<{ id: stri
   const history: HistoryEntry[] = (past ?? []).map((row) => {
     const who = row.completed_by ? memberMap.get(row.completed_by) : null;
     return {
+      occurrenceId: row.id,
       date: row.original_due_on,
       status: row.status,
       who: who?.display_name ?? null,
+      whoId: row.completed_by ?? null,
       colour: row.status === 'done' && who ? who.colour : null
     };
   });

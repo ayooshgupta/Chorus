@@ -17,14 +17,16 @@ import {
   type Freq,
   type MonthlyPattern
 } from '@/lib/recurrence';
-import { saveChore, archiveChore } from './actions';
+import { saveChore, archiveChore, reassignCredit } from './actions';
 
 export type MemberOption = { id: string; display_name: string; colour: string };
 
 export type HistoryEntry = {
+  occurrenceId: string;
   date: string;
   status: string;
   who: string | null;
+  whoId: string | null;
   colour: string | null;
 };
 
@@ -63,6 +65,8 @@ export default function ChoreForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showNotes, setShowNotes] = useState(Boolean(initial.notes));
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [localHistory, setLocalHistory] = useState(history);
 
   const initialMode: Mode =
     initial.interval > 1
@@ -438,27 +442,76 @@ export default function ChoreForm({
         {busy ? 'Saving…' : draft.id ? 'Save changes' : 'Add chore'}
       </button>
 
-      {draft.id && history.length ? (
+      {draft.id && localHistory.length ? (
         <>
           <h2 style={{ marginTop: 30 }}>History</h2>
           <div className="card">
-            {history.map((h, i) => (
-              <div key={i} className="hist-row">
-                <span
-                  style={{
-                    width: 11,
-                    height: 11,
-                    borderRadius: '50%',
-                    flex: 'none',
-                    background: h.colour ?? 'transparent',
-                    border: h.colour ? 'none' : '1px solid var(--line-strong)'
+            {localHistory.map((h) => (
+              <div key={h.occurrenceId}>
+                <button
+                  type="button"
+                  className="hist-row hist-btn"
+                  onClick={() => {
+                    if (h.status !== 'done') return;
+                    setExpandedRow(expandedRow === h.occurrenceId ? null : h.occurrenceId);
                   }}
-                />
-                <span style={{ flex: 1 }}>{shortDate(h.date)}</span>
-                <span className="meta">{h.status === 'done' ? (h.who ?? 'Done') : 'Skipped'}</span>
+                  style={{ cursor: h.status === 'done' ? 'pointer' : 'default' }}
+                >
+                  <span
+                    style={{
+                      width: 11,
+                      height: 11,
+                      borderRadius: '50%',
+                      flex: 'none',
+                      background: h.colour ?? 'transparent',
+                      border: h.colour ? 'none' : '1px solid var(--line-strong)'
+                    }}
+                  />
+                  <span style={{ flex: 1 }}>{shortDate(h.date)}</span>
+                  <span className="meta">
+                    {h.status === 'done' ? (h.who ?? 'Done') : 'Skipped'}
+                  </span>
+                </button>
+                {expandedRow === h.occurrenceId ? (
+                  <div className="hist-picker">
+                    {members.map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        className="hist-pick"
+                        data-on={m.id === h.whoId}
+                        onClick={async () => {
+                          if (m.id === h.whoId) return;
+                          await reassignCredit(h.occurrenceId, m.id);
+                          setLocalHistory((prev) =>
+                            prev.map((row) =>
+                              row.occurrenceId === h.occurrenceId
+                                ? { ...row, who: m.display_name, whoId: m.id, colour: m.colour }
+                                : row
+                            )
+                          );
+                          setExpandedRow(null);
+                          router.refresh();
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            background: m.colour
+                          }}
+                        />
+                        {m.display_name}
+                        {m.id === h.whoId ? ' ✓' : ''}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>
+          <p className="hint">Tap a completed row to change who gets the credit.</p>
         </>
       ) : null}
 

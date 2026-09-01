@@ -1,10 +1,17 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Bucket } from '@/lib/recurrence';
 import { AssignmentIcon } from '@/lib/icons';
-import { completeTask, skipTask, deferTask, handOffTask } from './actions';
+import { completeTask, skipTask, deferTask, handOffTask, undoComplete, undoSkip } from './actions';
+
+type ToastData = {
+  id: string;
+  label: string;
+  by: string;
+  kind: 'completed' | 'skipped';
+};
 
 export type Task = {
   id: string;
@@ -48,6 +55,27 @@ export default function Board({
   const [creditTo, setCreditTo] = useState(meId);
   const [gone, setGone] = useState<string[]>([]);
   const [, startTransition] = useTransition();
+  const [toast, setToast] = useState<ToastData | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function showToast(data: ToastData) {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast(data);
+    toastTimer.current = setTimeout(() => setToast(null), 5000);
+  }
+
+  function handleUndo() {
+    if (!toast) return;
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    const t = toast;
+    setToast(null);
+    setGone((g) => g.filter((id) => id !== t.id));
+    startTransition(async () => {
+      if (t.kind === 'completed') await undoComplete(t.id);
+      else await undoSkip(t.id);
+      router.refresh();
+    });
+  }
 
   function openSheet(task: Task) {
     setCreditTo(meId);
@@ -55,13 +83,14 @@ export default function Board({
     setOpen(task);
   }
 
-  function act(taskId: string, fn: () => Promise<unknown>, removes = true) {
+  function act(taskId: string, fn: () => Promise<unknown>, removes = true, toastData?: ToastData) {
     if (removes) setGone((g) => [...g, taskId]);
     setOpen(null);
     setShowHandOff(false);
 
     startTransition(async () => {
       await fn();
+      if (toastData) showToast(toastData);
       router.refresh();
     });
   }
@@ -93,7 +122,14 @@ export default function Board({
                   <button
                     className="tick"
                     aria-label={`Complete ${task.name}`}
-                    onClick={() => act(task.id, () => completeTask(task.id))}
+                    onClick={() =>
+                      act(task.id, () => completeTask(task.id), true, {
+                        id: task.id,
+                        label: task.name,
+                        by: task.ownerName ?? 'you',
+                        kind: 'completed'
+                      })
+                    }
                   >
                     <span
                       className="ring"
@@ -188,10 +224,31 @@ export default function Board({
                 ) : null}
 
                 <div className="sheet-actions">
-                  <button onClick={() => act(open.id, () => completeTask(open.id, creditTo))}>
+                  <button
+                    onClick={() => {
+                      const creditName = members.find((m) => m.id === creditTo)?.name ?? 'you';
+                      act(open.id, () => completeTask(open.id, creditTo), true, {
+                        id: open.id,
+                        label: open.name,
+                        by: creditName,
+                        kind: 'completed'
+                      });
+                    }}
+                  >
                     Complete
                   </button>
-                  <button onClick={() => act(open.id, () => skipTask(open.id))}>Skip</button>
+                  <button
+                    onClick={() =>
+                      act(open.id, () => skipTask(open.id), true, {
+                        id: open.id,
+                        label: open.name,
+                        by: '',
+                        kind: 'skipped'
+                      })
+                    }
+                  >
+                    Skip
+                  </button>
                   <button onClick={() => setShowHandOff(true)}>Hand off</button>
                   <button onClick={() => act(open.id, () => deferTask(open.id, 1))}>Defer</button>
                 </div>
@@ -215,6 +272,20 @@ export default function Board({
               </>
             )}
           </div>
+        </div>
+      ) : null}
+
+      {toast ? (
+        <div className="toast">
+          <div>
+            <div className="toast-label">
+              {toast.label} {toast.kind === 'completed' ? 'completed' : 'skipped'}
+            </div>
+            {toast.by ? <div className="toast-meta">by {toast.by}</div> : null}
+          </div>
+          <button className="toast-undo" onClick={handleUndo}>
+            Undo
+          </button>
         </div>
       ) : null}
     </>

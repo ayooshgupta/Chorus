@@ -125,3 +125,30 @@ export async function archiveChore(choreId: string) {
   revalidatePath('/home');
   return { ok: true };
 }
+
+export async function reassignCredit(occurrenceId: string, newMemberId: string) {
+  const me = await currentMember();
+  if (!me) return { error: 'Not signed in.' };
+
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('occurrences')
+    .update({ completed_by: newMemberId })
+    .eq('id', occurrenceId)
+    .eq('status', 'done');
+
+  if (error) return { error: error.message };
+
+  // Update the activity entry too
+  await supabase
+    .from('activity')
+    .update({ actor_member_id: newMemberId })
+    .eq('occurrence_id', occurrenceId)
+    .eq('action', 'completed');
+
+  revalidatePath('/home');
+  revalidatePath('/activity');
+  revalidatePath('/household');
+  return { ok: true };
+}

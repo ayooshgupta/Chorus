@@ -49,6 +49,25 @@ async function advanceRotation(
   await supabase.from('chores').update({ next_in_rotation: next.member_id }).eq('id', choreId);
 }
 
+async function reverseRotation(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  choreId: string,
+  currentMemberId: string | null
+) {
+  const { data: rotation } = await supabase
+    .from('rotation_members')
+    .select('member_id, position')
+    .eq('chore_id', choreId)
+    .order('position', { ascending: true });
+
+  if (!rotation || rotation.length === 0) return;
+
+  const index = rotation.findIndex((r) => r.member_id === currentMemberId);
+  const prev = rotation[(index - 1 + rotation.length) % rotation.length];
+
+  await supabase.from('chores').update({ next_in_rotation: prev.member_id }).eq('id', choreId);
+}
+
 export async function completeTask(occurrenceId: string, creditToMemberId?: string) {
   const ctx = await loadContext(occurrenceId);
   if (!ctx) return { error: 'Could not find that chore.' };
@@ -182,5 +201,116 @@ export async function handOffTask(occurrenceId: string, memberId: string) {
 
   revalidatePath('/home');
   revalidatePath('/activity');
+  return { ok: true };
+}
+
+export async function undoComplete(occurrenceId: string) {
+  const me = await currentMember();
+  if (!me) return { error: 'Not signed in.' };
+
+  const supabase = await createClient();
+
+  const { data: occurrence } = await supabase
+    .from('occurrences')
+    .select('id, chore_id, assigned_member_id, status')
+    .eq('id', occurrenceId)
+    .maybeSingle();
+
+  if (!occurrence || occurrence.status !== 'done') return { error: 'Cannot undo.' };
+
+  const { data: chore } = await supabase
+    .from('chores')
+    .select('id, assignment, next_in_rotation, household_id')
+    .eq('id', occurrence.chore_id)
+    .maybeSingle();
+
+  if (!chore) return { error: 'Chore not found.' };
+
+  // Delete the newer open occurrence sync may have created
+  await supabase
+    .from('occurrences')
+    .delete()
+    .eq('chore_id', chore.id)
+    .eq('status', 'open');
+
+  // Revert the occurrence back to open
+  await supabase
+    .from('occurrences')
+    .update({
+      status: 'open',
+      completed_by: null,
+      completed_at: null,
+      weight_at_completion: null
+    })
+    .eq('id', occurrenceId);
+
+  // Reverse rotation if alternating
+  if (chore.assignment === 'alternating') {
+    await reverseRotation(supabase, chore.id, chore.next_in_rotation);
+  }
+
+  // Delete the activity entry
+  await supabase
+    .from('activity')
+    .delete()
+    .eq('occurrence_id', occurrenceId)
+    .eq('action', 'completed');
+
+  revalidatePath('/home');
+  revalidatePath('/activity');
+  revalidatePath('/household');
+  return { ok: true };
+}
+
+export async function undoSkip(occurrenceId: string) {
+  const me = await currentMember();
+  if (!me) return { error: 'Not signed in.' };
+
+  const supabase = await createClient();
+
+  const { data: occurrence } = await supabase
+    .from('occurrences')
+    .select('id, chore_id, assigned_member_id, status')
+    .eq('id', occurrenceId)
+    .maybeSingle();
+
+  if (!occurrence || occurrence.status !== 'skipped') return { error: 'Cannot undo.' };
+
+  const { data: chore } = await supabase
+    .from('chores')
+    .select('id, assignment, next_in_rotation, household_id')
+    .eq('id', occurrence.chore_id)
+    .maybeSingle();
+
+  if (!chore) return { error: 'Chore not found.' };
+
+  // Delete the newer open occurrence sync may have created
+  await supabase
+    .from('occurrences')
+    .delete()
+    .eq('chore_id', chore.id)
+    .eq('status', 'open');
+
+  // Revert back to open
+  await supabase
+    .from('occurrences')
+    .update({ status: 'open' })
+    .eq('id', occurrenceId);
+
+  // Reverse rotation if alternating
+  if (chore.assignment === 'alternating') {
+    await reverseRotation(supabase, chore.id, chore.next_in_rotation);
+  }
+
+  // Delete the activity entry
+  await supabase
+    .from('activity')
+    .delete()
+    .eq('occurrence_id', occurrenceId)
+    .eq('action', 'skipped');
+
+  revalidatePath('/home');
+  revalidatePath('/activity');
+  revalidatePath('/household');
   return { ok: true };
 }
