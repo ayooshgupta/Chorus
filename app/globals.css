@@ -830,3 +830,12 @@ button.google {
   border-color: var(--accent);
   font-weight: 500;
 }
+
+.feed-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.feed-link:active {
+  background: var(--surface-alt);
+}

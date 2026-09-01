@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { loadSession } from '@/lib/session';
 import { timeAgo } from '@/lib/recurrence';
@@ -43,7 +44,7 @@ export default async function ActivityPage() {
 
   const { data: rows } = await supabase
     .from('activity')
-    .select('id, action, detail, created_at, members(display_name, colour)')
+    .select('id, action, detail, created_at, occurrence_id, members(display_name, colour), occurrences(chore_id)')
     .eq('household_id', session.active.household_id)
     .order('created_at', { ascending: false })
     .limit(60);
@@ -69,8 +70,11 @@ export default async function ActivityPage() {
                 colour: string;
               } | null;
 
-              return (
-                <div key={row.id} className="feed-row">
+              const occ = row.occurrences as unknown as { chore_id: string } | null;
+              const choreId = occ?.chore_id ?? null;
+
+              const content = (
+                <>
                   <div
                     className="dot"
                     style={{ background: actor?.colour ?? '#9b978f', width: 26, height: 26 }}
@@ -83,6 +87,23 @@ export default async function ActivityPage() {
                     </div>
                     <div className="meta">{timeAgo(row.created_at)}</div>
                   </div>
+                  {choreId ? (
+                    <span style={{ color: 'var(--text-faint)', fontSize: 14, flexShrink: 0 }}>›</span>
+                  ) : null}
+                </>
+              );
+
+              return choreId ? (
+                <Link
+                  key={row.id}
+                  href={`/chores/${choreId}`}
+                  className="feed-row feed-link"
+                >
+                  {content}
+                </Link>
+              ) : (
+                <div key={row.id} className="feed-row">
+                  {content}
                 </div>
               );
             })
