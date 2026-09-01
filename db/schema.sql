@@ -86,6 +86,7 @@ create table occurrences (
   completed_by         uuid references members(id),
   completed_at         timestamptz,
   weight_at_completion integer,
+  credited_members     uuid[],
   created_at           timestamptz not null default now()
 );
 

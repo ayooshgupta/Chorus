@@ -40,7 +40,7 @@ export default async function EditChore({ params }: { params: Promise<{ id: stri
         .not('room', 'is', null),
       supabase
         .from('occurrences')
-        .select('id, original_due_on, status, completed_by')
+        .select('id, original_due_on, status, completed_by, credited_members')
         .eq('chore_id', id)
         .neq('status', 'open')
         .order('original_due_on', { ascending: false })
@@ -57,13 +57,21 @@ export default async function EditChore({ params }: { params: Promise<{ id: stri
 
   const history: HistoryEntry[] = (past ?? []).map((row) => {
     const who = row.completed_by ? memberMap.get(row.completed_by) : null;
+    const credited = row.credited_members as string[] | null;
+    const isShared = credited && credited.length > 1;
     return {
       occurrenceId: row.id,
       date: row.original_due_on,
       status: row.status,
-      who: who?.display_name ?? null,
-      whoId: row.completed_by ?? null,
-      colour: row.status === 'done' && who ? who.colour : null
+      who: isShared
+        ? credited.map((id: string) => memberMap.get(id)?.display_name ?? '').filter(Boolean).join(' + ')
+        : (who?.display_name ?? null),
+      whoId: isShared ? null : (row.completed_by ?? null),
+      colour: !isShared && row.status === 'done' && who ? who.colour : null,
+      creditedMembers: isShared ? credited : null,
+      creditedColours: isShared
+        ? credited.map((id: string) => memberMap.get(id)?.colour ?? '#9b978f')
+        : (row.status === 'done' && who ? [who.colour] : [])
     };
   });
 

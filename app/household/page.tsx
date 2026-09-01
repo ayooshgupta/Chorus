@@ -52,7 +52,7 @@ export default async function Household() {
   const { data: closedRows } = choreIds.length
     ? await supabase
         .from('occurrences')
-        .select('chore_id, original_due_on, status, completed_by, completed_at, weight_at_completion')
+        .select('chore_id, original_due_on, status, completed_by, completed_at, weight_at_completion, credited_members')
         .in('chore_id', choreIds)
         .neq('status', 'open')
         .order('original_due_on', { ascending: true })
@@ -92,23 +92,35 @@ export default async function Household() {
   for (const row of closed) {
     if (row.status !== 'done' || !row.completed_by || !row.completed_at) continue;
     if (row.completed_at.slice(0, 10) < since) continue;
-    actual.set(
-      row.completed_by,
-      (actual.get(row.completed_by) ?? 0) + (row.weight_at_completion ?? 0)
-    );
+    const w = row.weight_at_completion ?? 0;
+    if (row.credited_members && row.credited_members.length > 1) {
+      const share = w / row.credited_members.length;
+      for (const mid of row.credited_members) {
+        actual.set(mid, (actual.get(mid) ?? 0) + share);
+      }
+    } else {
+      actual.set(row.completed_by, (actual.get(row.completed_by) ?? 0) + w);
+    }
   }
 
   const actualTotal = [...actual.values()].reduce((a, b) => a + b, 0);
 
   const colourOf = new Map(members.map((m) => [m.id, m.colour]));
-  const trends = new Map<string, { colour: string | null }[]>();
+  const trends = new Map<string, { colours: string[] }[]>();
 
   for (const row of closed) {
     const list = trends.get(row.chore_id) ?? [];
-    list.push({
-      colour:
-        row.status === 'done' && row.completed_by ? colourOf.get(row.completed_by) ?? null : null
-    });
+    if (row.status === 'done' && row.credited_members && row.credited_members.length > 1) {
+      list.push({
+        colours: row.credited_members
+          .map((mid: string) => colourOf.get(mid))
+          .filter(Boolean) as string[]
+      });
+    } else if (row.status === 'done' && row.completed_by) {
+      list.push({ colours: [colourOf.get(row.completed_by) ?? ''] });
+    } else {
+      list.push({ colours: [] });
+    }
     trends.set(row.chore_id, list);
   }
 
@@ -243,19 +255,24 @@ export default async function Household() {
                     {chore.notes ? <div className="chore-note">{chore.notes}</div> : null}
                     {dots.length ? (
                       <div className="trend">
-                        {dots.map((d, i) => (
-                          <span
-                            key={i}
-                            style={
-                              d.colour
-                                ? { background: d.colour }
-                                : {
-                                    background: 'transparent',
-                                    border: '1px solid var(--line-strong)'
-                                  }
-                            }
-                          />
-                        ))}
+                        {dots.map((d, i) =>
+                          d.colours.length > 1 ? (
+                            <svg key={i} width="8" height="8" viewBox="0 0 8 8">
+                              <circle cx="4" cy="4" r="4" fill={d.colours[0]} />
+                              <path d="M4 0 A4 4 0 0 1 4 8" fill={d.colours[1]} />
+                              {d.colours[2] ? (
+                                <path d="M4 0 L4 4 L7.46 2.27 A4 4 0 0 0 4 0 Z" fill={d.colours[2]} />
+                              ) : null}
+                            </svg>
+                          ) : d.colours.length === 1 ? (
+                            <span key={i} style={{ background: d.colours[0] }} />
+                          ) : (
+                            <span
+                              key={i}
+                              style={{ background: 'transparent', border: '1px solid var(--line-strong)' }}
+                            />
+                          )
+                        )}
                       </div>
                     ) : null}
                   </Link>

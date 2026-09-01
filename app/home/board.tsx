@@ -52,7 +52,7 @@ export default function Board({
   const router = useRouter();
   const [open, setOpen] = useState<Task | null>(null);
   const [showHandOff, setShowHandOff] = useState(false);
-  const [creditTo, setCreditTo] = useState(meId);
+  const [creditTo, setCreditTo] = useState<Set<string>>(new Set([meId]));
   const [gone, setGone] = useState<string[]>([]);
   const [, startTransition] = useTransition();
   const [toast, setToast] = useState<ToastData | null>(null);
@@ -78,9 +78,21 @@ export default function Board({
   }
 
   function openSheet(task: Task) {
-    setCreditTo(meId);
+    setCreditTo(new Set([meId]));
     setShowHandOff(false);
     setOpen(task);
+  }
+
+  function toggleCredit(memberId: string) {
+    setCreditTo((prev) => {
+      const next = new Set(prev);
+      if (next.has(memberId)) {
+        if (next.size > 1) next.delete(memberId);
+      } else {
+        next.add(memberId);
+      }
+      return next;
+    });
   }
 
   function act(taskId: string, fn: () => Promise<unknown>, removes = true, toastData?: ToastData) {
@@ -139,7 +151,7 @@ export default function Board({
                     aria-label={`Complete ${task.name}`}
                     onClick={() =>{
                       const myName = members.find((m) => m.id === meId)?.name ?? 'you';
-                      act(task.id, () => completeTask(task.id), true, {
+                      act(task.id, () => completeTask(task.id, [meId]), true, {
                         id: task.id,
                         label: task.name,
                         by: myName,
@@ -224,15 +236,15 @@ export default function Board({
               <>
                 {members.length > 1 ? (
                   <>
-                    <span className="label">Completed by</span>
+                    <span className="label">Who did it</span>
                     <div className="seg" style={{ marginBottom: 14 }}>
                       {members.map((m) => (
                         <button
                           key={m.id}
-                          data-on={creditTo === m.id}
-                          onClick={() => setCreditTo(m.id)}
+                          data-on={creditTo.has(m.id)}
+                          onClick={() => toggleCredit(m.id)}
                         >
-                          {m.id === meId ? `${m.name} (you)` : m.name}
+                          {m.name}{creditTo.has(m.id) ? ' ✓' : ''}
                         </button>
                       ))}
                     </div>
@@ -242,11 +254,12 @@ export default function Board({
                 <div className="sheet-actions">
                   <button
                     onClick={() => {
-                      const creditName = members.find((m) => m.id === creditTo)?.name ?? 'you';
-                      act(open.id, () => completeTask(open.id, creditTo), true, {
+                      const ids = Array.from(creditTo);
+                      const names = ids.map((id) => members.find((m) => m.id === id)?.name ?? '').filter(Boolean);
+                      act(open.id, () => completeTask(open.id, ids), true, {
                         id: open.id,
                         label: open.name,
-                        by: creditName,
+                        by: names.join(' + '),
                         kind: 'completed'
                       });
                     }}

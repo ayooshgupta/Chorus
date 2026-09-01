@@ -126,7 +126,7 @@ export async function archiveChore(choreId: string) {
   return { ok: true };
 }
 
-export async function reassignCredit(occurrenceId: string, newMemberId: string) {
+export async function reassignCredit(occurrenceId: string, newMemberIds: string[]) {
   const me = await currentMember();
   if (!me) return { error: 'Not signed in.' };
 
@@ -134,7 +134,10 @@ export async function reassignCredit(occurrenceId: string, newMemberId: string) 
 
   const { error } = await supabase
     .from('occurrences')
-    .update({ completed_by: newMemberId })
+    .update({
+      completed_by: newMemberIds[0],
+      credited_members: newMemberIds.length > 1 ? newMemberIds : null
+    })
     .eq('id', occurrenceId)
     .eq('status', 'done');
 
@@ -143,7 +146,12 @@ export async function reassignCredit(occurrenceId: string, newMemberId: string) 
   // Update the activity entry too
   await supabase
     .from('activity')
-    .update({ actor_member_id: newMemberId })
+    .update({
+      actor_member_id: newMemberIds[0],
+      detail: newMemberIds.length > 1
+        ? supabase.rpc ? { shared: true } : { shared: true }
+        : undefined
+    })
     .eq('occurrence_id', occurrenceId)
     .eq('action', 'completed');
 

@@ -28,6 +28,8 @@ export type HistoryEntry = {
   who: string | null;
   whoId: string | null;
   colour: string | null;
+  creditedMembers: string[] | null;
+  creditedColours: string[];
 };
 
 export type ChoreDraft = {
@@ -457,16 +459,26 @@ export default function ChoreForm({
                   }}
                   style={{ cursor: h.status === 'done' ? 'pointer' : 'default' }}
                 >
-                  <span
-                    style={{
-                      width: 11,
-                      height: 11,
-                      borderRadius: '50%',
-                      flex: 'none',
-                      background: h.colour ?? 'transparent',
-                      border: h.colour ? 'none' : '1px solid var(--line-strong)'
-                    }}
-                  />
+                  {h.creditedColours.length > 1 ? (
+                    <svg width="11" height="11" viewBox="0 0 11 11" style={{ flexShrink: 0 }}>
+                      <circle cx="5.5" cy="5.5" r="5.5" fill={h.creditedColours[0]} />
+                      <path d="M5.5 0 A5.5 5.5 0 0 1 5.5 11" fill={h.creditedColours[1]} />
+                      {h.creditedColours[2] ? (
+                        <path d="M5.5 0 L5.5 5.5 L10.25 2.63 A5.5 5.5 0 0 0 5.5 0 Z" fill={h.creditedColours[2]} />
+                      ) : null}
+                    </svg>
+                  ) : (
+                    <span
+                      style={{
+                        width: 11,
+                        height: 11,
+                        borderRadius: '50%',
+                        flex: 'none',
+                        background: h.colour ?? 'transparent',
+                        border: h.colour ? 'none' : '1px solid var(--line-strong)'
+                      }}
+                    />
+                  )}
                   <span style={{ flex: 1 }}>{shortDate(h.date)}</span>
                   <span className="meta">
                     {h.status === 'done' ? (h.who ?? 'Done') : 'Skipped'}
@@ -474,38 +486,67 @@ export default function ChoreForm({
                 </button>
                 {expandedRow === h.occurrenceId ? (
                   <div className="hist-picker">
-                    {members.map((m) => (
-                      <button
-                        key={m.id}
-                        type="button"
-                        className="hist-pick"
-                        data-on={m.id === h.whoId}
-                        onClick={async () => {
-                          if (m.id === h.whoId) return;
-                          await reassignCredit(h.occurrenceId, m.id);
-                          setLocalHistory((prev) =>
-                            prev.map((row) =>
-                              row.occurrenceId === h.occurrenceId
-                                ? { ...row, who: m.display_name, whoId: m.id, colour: m.colour }
-                                : row
-                            )
-                          );
-                          setExpandedRow(null);
-                          router.refresh();
-                        }}
-                      >
-                        <span
-                          style={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            background: m.colour
+                    {members.map((m) => {
+                      const isOn = h.creditedMembers
+                        ? h.creditedMembers.includes(m.id)
+                        : m.id === h.whoId;
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          className="hist-pick"
+                          data-on={isOn}
+                          onClick={async () => {
+                            let newIds: string[];
+                            if (h.creditedMembers) {
+                              const set = new Set(h.creditedMembers);
+                              if (set.has(m.id)) {
+                                if (set.size > 1) set.delete(m.id);
+                              } else {
+                                set.add(m.id);
+                              }
+                              newIds = Array.from(set);
+                            } else {
+                              if (m.id === h.whoId) {
+                                return;
+                              }
+                              newIds = [m.id];
+                            }
+                            await reassignCredit(h.occurrenceId, newIds);
+                            const isShared = newIds.length > 1;
+                            setLocalHistory((prev) =>
+                              prev.map((row) =>
+                                row.occurrenceId === h.occurrenceId
+                                  ? {
+                                      ...row,
+                                      who: isShared
+                                        ? newIds.map((id) => members.find((mm) => mm.id === id)?.display_name ?? '').filter(Boolean).join(' + ')
+                                        : (members.find((mm) => mm.id === newIds[0])?.display_name ?? row.who),
+                                      whoId: isShared ? null : newIds[0],
+                                      colour: isShared ? null : (members.find((mm) => mm.id === newIds[0])?.colour ?? null),
+                                      creditedMembers: isShared ? newIds : null,
+                                      creditedColours: newIds.map((id) => members.find((mm) => mm.id === id)?.colour ?? '#9b978f')
+                                    }
+                                  : row
+                              )
+                            );
+                            if (!isShared) setExpandedRow(null);
+                            router.refresh();
                           }}
-                        />
-                        {m.display_name}
-                        {m.id === h.whoId ? ' ✓' : ''}
-                      </button>
-                    ))}
+                        >
+                          <span
+                            style={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: '50%',
+                              background: m.colour
+                            }}
+                          />
+                          {m.display_name}
+                          {isOn ? ' ✓' : ''}
+                        </button>
+                      );
+                    })}
                   </div>
                 ) : null}
               </div>

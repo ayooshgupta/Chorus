@@ -68,20 +68,22 @@ async function reverseRotation(
   await supabase.from('chores').update({ next_in_rotation: prev.member_id }).eq('id', choreId);
 }
 
-export async function completeTask(occurrenceId: string, creditToMemberId?: string) {
+export async function completeTask(occurrenceId: string, creditToMemberIds?: string[]) {
   const ctx = await loadContext(occurrenceId);
   if (!ctx) return { error: 'Could not find that chore.' };
 
   const { me, supabase, occurrence, chore } = ctx;
-  const credited = creditToMemberId ?? me.id;
+  const credited = creditToMemberIds ?? [me.id];
+  const primaryCredited = credited[0];
 
   const { error } = await supabase
     .from('occurrences')
     .update({
       status: 'done',
-      completed_by: credited,
+      completed_by: primaryCredited,
       completed_at: new Date().toISOString(),
-      weight_at_completion: chore.weight
+      weight_at_completion: chore.weight,
+      credited_members: credited.length > 1 ? credited : null
     })
     .eq('id', occurrenceId)
     .eq('status', 'open');
@@ -92,14 +94,16 @@ export async function completeTask(occurrenceId: string, creditToMemberId?: stri
     await advanceRotation(supabase, chore.id, occurrence.assigned_member_id);
   }
 
-  let onBehalfOf: string | null = null;
-  if (credited !== me.id) {
+  let detail: Record<string, unknown> = { name: chore.name };
+  if (credited.length > 1) {
+    detail.shared = true;
+  } else if (primaryCredited !== me.id) {
     const { data: other } = await supabase
       .from('members')
       .select('display_name')
-      .eq('id', credited)
+      .eq('id', primaryCredited)
       .maybeSingle();
-    onBehalfOf = other?.display_name ?? null;
+    if (other) detail.for = other.display_name;
   }
 
   await supabase.from('activity').insert({
@@ -107,7 +111,7 @@ export async function completeTask(occurrenceId: string, creditToMemberId?: stri
     occurrence_id: occurrenceId,
     actor_member_id: me.id,
     action: 'completed',
-    detail: onBehalfOf ? { name: chore.name, for: onBehalfOf } : { name: chore.name }
+    detail
   });
 
   revalidatePath('/home');
@@ -240,7 +244,8 @@ export async function undoComplete(occurrenceId: string) {
       status: 'open',
       completed_by: null,
       completed_at: null,
-      weight_at_completion: null
+      weight_at_completion: null,
+      credited_members: null
     })
     .eq('id', occurrenceId);
 
