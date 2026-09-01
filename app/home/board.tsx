@@ -99,9 +99,24 @@ export default function Board({
 
   if (visible.length === 0) {
     return (
-      <div className="card">
-        <div className="empty">Nothing due right now.</div>
-      </div>
+      <>
+        <div className="card">
+          <div className="empty">Nothing due right now.</div>
+        </div>
+        {toast ? (
+          <div className="toast">
+            <div>
+              <div className="toast-label">
+                {toast.label} {toast.kind === 'completed' ? 'completed' : 'skipped'}
+              </div>
+              {toast.by ? <div className="toast-meta">by {toast.by}</div> : null}
+            </div>
+            <button className="toast-undo" onClick={handleUndo}>
+              Undo
+            </button>
+          </div>
+        ) : null}
+      </>
     );
   }
 
