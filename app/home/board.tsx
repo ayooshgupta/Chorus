@@ -26,6 +26,7 @@ export type Task = {
   ownerId: string | null;
   ownerName: string | null;
   ownerColour: string | null;
+  dots: { colours: string[] }[];
 };
 
 type MemberLite = { id: string; name: string; colour: string };
@@ -189,6 +190,28 @@ export default function Board({
                       {task.room ? ` · ${task.room}` : ''}
                       {task.deferred ? ' · deferred' : ''}
                     </div>
+                    {task.dots.length > 0 ? (
+                      <div className="trend">
+                        {task.dots.map((d, i) =>
+                          d.colours.length > 1 ? (
+                            <svg key={i} width="8" height="8" viewBox="0 0 8 8">
+                              <circle cx="4" cy="4" r="4" fill={d.colours[0]} />
+                              <path d="M4 0 A4 4 0 0 1 4 8" fill={d.colours[1]} />
+                              {d.colours[2] ? (
+                                <path d="M4 0 L4 4 L7.46 2.27 A4 4 0 0 0 4 0 Z" fill={d.colours[2]} />
+                              ) : null}
+                            </svg>
+                          ) : d.colours.length === 1 ? (
+                            <span key={i} style={{ background: d.colours[0] }} />
+                          ) : (
+                            <span
+                              key={i}
+                              style={{ background: 'transparent', border: '1px solid var(--line-strong)' }}
+                            />
+                          )
+                        )}
+                      </div>
+                    ) : null}
                   </button>
                 </div>
               ))}

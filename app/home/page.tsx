@@ -40,6 +40,41 @@ export default async function HomePage() {
   }));
   const byId = new Map(memberList.map((m) => [m.id, m]));
 
+  // Gather chore IDs from open occurrences, then fetch last 10 closed per chore
+  const choreIds = [...new Set((rows ?? []).map((r) => {
+    const c = r.chores as unknown as { id: string };
+    return c.id;
+  }))];
+
+  const { data: closedRows } = choreIds.length
+    ? await supabase
+        .from('occurrences')
+        .select('chore_id, status, completed_by, credited_members')
+        .in('chore_id', choreIds)
+        .neq('status', 'open')
+        .order('original_due_on', { ascending: false })
+        .limit(choreIds.length * 10)
+    : { data: [] };
+
+  // Build trend dots grouped by chore_id (max 10 each)
+  const trendMap = new Map<string, { colours: string[] }[]>();
+  for (const cr of closedRows ?? []) {
+    const list = trendMap.get(cr.chore_id) ?? [];
+    if (list.length >= 10) continue;
+    if (cr.status === 'done' && cr.credited_members && cr.credited_members.length > 1) {
+      list.push({
+        colours: (cr.credited_members as string[])
+          .map((mid: string) => byId.get(mid)?.colour)
+          .filter(Boolean) as string[]
+      });
+    } else if (cr.status === 'done' && cr.completed_by) {
+      list.push({ colours: [byId.get(cr.completed_by)?.colour ?? ''] });
+    } else {
+      list.push({ colours: [] });
+    }
+    trendMap.set(cr.chore_id, list);
+  }
+
   const tasks: (Task & { bucket: Bucket })[] = [];
 
   for (const row of rows ?? []) {
@@ -70,6 +105,7 @@ export default async function HomePage() {
       ownerId: ownerId ?? null,
       ownerName: owner?.name ?? null,
       ownerColour: owner?.colour ?? null,
+      dots: (trendMap.get(chore.id) ?? []).reverse(),
       bucket
     });
   }

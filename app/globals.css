@@ -436,6 +436,16 @@ button.google {
   border-radius: 50%;
 }
 
+.task-body .trend span {
+  width: 8px;
+  height: 8px;
+}
+
+.task-body .trend {
+  margin-top: 6px;
+  gap: 4px;
+}
+
 .task {
   display: flex;
   align-items: center;
