@@ -765,16 +765,11 @@ button.google {
   align-items: center;
   z-index: 25;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
-  animation: toast-in 0.25s ease-out;
+  animation: toast-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 [data-theme='dark'] .toast {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-}
-
-@keyframes toast-in {
-  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
 .toast-label {
@@ -848,4 +843,107 @@ button.google {
 
 .feed-link:active {
   background: var(--surface-alt);
+}
+
+/* ── Transitions & Animations ── */
+
+/* Smooth state changes on interactive elements */
+button,
+a,
+.seg > button,
+.days > button,
+.hist-pick,
+.theme-opt {
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+/* Ring pulse on quick-complete tap */
+.tick:active .ring {
+  transform: scale(0.8);
+  transition: transform 0.1s ease;
+}
+
+.ring {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Card press feedback */
+.task-body:active {
+  opacity: 0.7;
+  transition: opacity 0.1s ease;
+}
+
+/* Sheet slide-up */
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.sheet {
+  animation: sheet-up 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Scrim fade-in */
+@keyframes scrim-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.scrim {
+  animation: scrim-in 0.2s ease-out;
+}
+
+/* Toast slide-up (enhanced with spring) */
+@keyframes toast-in {
+  0% { opacity: 0; transform: translateX(-50%) translateY(16px) scale(0.95); }
+  70% { transform: translateX(-50%) translateY(-2px) scale(1.01); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
+/* FAB bounce on press */
+.fab:active {
+  transform: scale(0.88);
+  transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Back button press */
+.back:active {
+  transform: scale(0.88);
+  transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Card sections appear with subtle fade */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.card {
+  animation: fade-in 0.25s ease-out;
+}
+
+/* History picker expand */
+.hist-picker {
+  animation: fade-in 0.2s ease-out;
+}
+
+/* Feed row tap highlight */
+.feed-link:active {
+  background: var(--surface-alt);
+  transition: background 0.1s ease;
+}
+
+/* Nav tab transition */
+.nav a {
+  transition: color 0.15s ease;
+}
+
+/* Segment control smooth toggle */
+.seg > button[data-on='true'] {
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Theme toggle smooth switch */
+.theme-opt[data-on='true'] {
+  transition: background 0.2s ease, color 0.2s ease;
 }
