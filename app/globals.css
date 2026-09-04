@@ -717,6 +717,27 @@ button.google {
   transform: scale(0.93);
 }
 
+.sheet-note {
+  background: var(--surface-alt);
+  border-radius: var(--radius);
+  padding: 11px 13px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-soft);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.sheet-note-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 4px;
+}
+
 /* ── Settings sheet groups ── */
 
 .set-group {

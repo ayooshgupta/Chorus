@@ -20,6 +20,7 @@ export type Task = {
   assignment: string;
   weight: number;
   room: string | null;
+  notes: string | null;
   dueOn: string;
   deferred: boolean;
   when: string;
@@ -231,10 +232,17 @@ export default function Board({
           <div className="sheet" onClick={(e) => e.stopPropagation()}>
             <div className="grab" />
             <div style={{ fontSize: 18, fontWeight: 600 }}>{open.name}</div>
-            <div className="meta" style={{ marginBottom: 16 }}>
+            <div className="meta" style={{ marginBottom: open.notes ? 12 : 16 }}>
               {open.ownerName ?? 'Anyone'} · {LABEL[open.assignment]} · {open.when}
               {open.room ? ` · ${open.room}` : ''}
             </div>
+
+            {open.notes ? (
+              <div className="sheet-note" style={{ marginBottom: 16 }}>
+                <span className="sheet-note-label">Note</span>
+                {open.notes}
+              </div>
+            ) : null}
 
             {showHandOff ? (
               <>

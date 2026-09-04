@@ -27,7 +27,7 @@ export default async function HomePage() {
     supabase
       .from('occurrences')
       .select(
-        'id, due_on, original_due_on, assigned_member_id, override_member_id, chores!inner(id, name, assignment, weight, room, household_id)'
+        'id, due_on, original_due_on, assigned_member_id, override_member_id, chores!inner(id, name, assignment, weight, room, notes, household_id)'
       )
       .eq('status', 'open')
       .eq('chores.household_id', me.household_id)
@@ -88,6 +88,7 @@ export default async function HomePage() {
       assignment: string;
       weight: number;
       room: string | null;
+      notes: string | null;
     };
 
     const ownerId = row.override_member_id ?? row.assigned_member_id;
@@ -100,6 +101,7 @@ export default async function HomePage() {
       assignment: chore.assignment,
       weight: chore.weight,
       room: chore.room ?? null,
+      notes: chore.notes?.trim() ? chore.notes.trim() : null,
       dueOn: row.due_on,
       deferred: row.due_on !== row.original_due_on,
       when: friendlyDate(row.due_on, today),
