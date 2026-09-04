@@ -30,7 +30,7 @@ export default async function Household() {
   const [{ data: memberRows }, { data: choreRows }, { data: rotationRows }] = await Promise.all([
     supabase
       .from('members')
-      .select('id, display_name, colour')
+      .select('id, display_name, colour, archived_at')
       .eq('household_id', me.household_id)
       .order('joined_at', { ascending: true }),
     supabase
@@ -44,7 +44,8 @@ export default async function Household() {
     supabase.from('rotation_members').select('chore_id, member_id')
   ]);
 
-  const members = memberRows ?? [];
+  const allMembers = memberRows ?? [];
+  const members = allMembers.filter((m) => !m.archived_at);
   const chores = choreRows ?? [];
   const rotations = rotationRows ?? [];
   const choreIds = chores.map((c) => c.id);
@@ -105,7 +106,7 @@ export default async function Household() {
 
   const actualTotal = [...actual.values()].reduce((a, b) => a + b, 0);
 
-  const colourOf = new Map(members.map((m) => [m.id, m.colour]));
+  const colourOf = new Map(allMembers.map((m) => [m.id, m.colour]));
   const trends = new Map<string, { colours: string[] }[]>();
 
   for (const row of closed) {

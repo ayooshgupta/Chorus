@@ -26,6 +26,7 @@ export default async function EditChore({ params }: { params: Promise<{ id: stri
         .from('members')
         .select('id, display_name, colour')
         .eq('household_id', me.household_id)
+        .is('archived_at', null)
         .order('joined_at', { ascending: true }),
       supabase
         .from('rotation_members')

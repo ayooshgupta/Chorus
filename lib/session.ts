@@ -27,11 +27,13 @@ export async function loadSession(): Promise<Session | null> {
 
   const { data } = await supabase
     .from('members')
-    .select('id, household_id, display_name, colour, households(name)')
+    .select('id, household_id, display_name, colour, archived_at, households(name)')
     .eq('auth_user_id', user.id)
     .order('joined_at', { ascending: true });
 
-  const memberships: Membership[] = (data ?? []).map((row) => {
+  const memberships: Membership[] = (data ?? [])
+    .filter((row) => !row.archived_at)
+    .map((row) => {
     const house = row.households as unknown as { name: string } | null;
     return {
       id: row.id,

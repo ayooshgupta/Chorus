@@ -35,6 +35,7 @@ create table members (
   email        text not null check (position('@' in email) > 1),
   display_name text not null check (length(trim(display_name)) > 0),
   colour       text not null default '#1D9E75',
+  archived_at  timestamptz,
   joined_at    timestamptz not null default now()
 );
 

@@ -22,6 +22,7 @@ export default async function HomePage() {
       .from('members')
       .select('id, display_name, colour')
       .eq('household_id', me.household_id)
+      .is('archived_at', null)
       .order('joined_at', { ascending: true }),
     supabase
       .from('occurrences')
