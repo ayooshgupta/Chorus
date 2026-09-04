@@ -6,14 +6,17 @@ import { todayIso } from '@/lib/recurrence';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+// Title is intentionally empty — iOS shows the app name ("Chorus") on its own
+// and appending a custom title makes the unlocked banner read "… from Chorus".
+// Everything goes in the body.
 function buildMessage(dueToday: number, overdue: number) {
   if (dueToday && overdue) {
-    return { title: 'Chores due today', body: 'Some are also overdue. Tap to open the board.' };
+    return { title: '', body: 'Chores due today, and a few are overdue. Tap to open the board.' };
   }
   if (dueToday) {
-    return { title: 'Chores due today', body: 'Tap to open the board.' };
+    return { title: '', body: 'Chores due today. Tap to open the board.' };
   }
-  return { title: 'Overdue chores', body: 'A few things slipped. Tap to catch up.' };
+  return { title: '', body: 'A few chores are overdue. Tap to catch up.' };
 }
 
 export async function GET(req: NextRequest) {

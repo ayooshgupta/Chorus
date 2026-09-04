@@ -16,7 +16,10 @@ self.addEventListener('push', (event) => {
     data = { body: event.data ? event.data.text() : '' };
   }
 
-  const title = data.title || 'Chorus';
+  // Pass the title through as-is when it's a string (including ''), so the
+  // payload can send an empty title and let iOS show just the app name — this
+  // avoids iOS appending " from Chorus" to a custom title in the banner.
+  const title = typeof data.title === 'string' ? data.title : 'Chorus';
   const options = {
     body: data.body || '',
     icon: '/chorus-192.png',
