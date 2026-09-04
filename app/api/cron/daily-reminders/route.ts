@@ -6,11 +6,14 @@ import { todayIso } from '@/lib/recurrence';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-function buildBody(dueToday: number, overdue: number) {
-  const label = (n: number) => `${n} ${n === 1 ? 'chore' : 'chores'}`;
-  if (dueToday && overdue) return `${dueToday} due today, ${overdue} overdue`;
-  if (dueToday) return `${label(dueToday)} due today`;
-  return `${label(overdue)} overdue`;
+function buildMessage(dueToday: number, overdue: number) {
+  if (dueToday && overdue) {
+    return { title: 'Chores due today', body: 'Some are also overdue. Tap to open the board.' };
+  }
+  if (dueToday) {
+    return { title: 'Chores due today', body: 'Tap to open the board.' };
+  }
+  return { title: 'Overdue chores', body: 'A few things slipped. Tap to catch up.' };
 }
 
 export async function GET(req: NextRequest) {
@@ -62,12 +65,8 @@ export async function GET(req: NextRequest) {
       continue;
     }
 
-    const result = await sendPush(rows, {
-      title: 'Chorus',
-      body: buildBody(c.dueToday, c.overdue),
-      url: '/home',
-      tag: 'chorus-daily'
-    });
+    const { title, body } = buildMessage(c.dueToday, c.overdue);
+    const result = await sendPush(rows, { title, body, url: '/home', tag: 'chorus-daily' });
 
     sent += result.sent;
     if (result.stale.length) {
