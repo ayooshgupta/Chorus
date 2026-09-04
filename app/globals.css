@@ -717,6 +717,90 @@ button.google {
   transform: scale(0.93);
 }
 
+/* ── Settings sheet groups ── */
+
+.set-group {
+  margin-bottom: 22px;
+}
+
+.set-group > .label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+  margin-bottom: 10px;
+}
+
+.saved-tag {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--accent-text);
+}
+
+.notif-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.notif-row[data-disabled='true'] .notif-title {
+  color: var(--text-faint);
+}
+
+.notif-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.notif-sub {
+  font-size: 12px;
+  color: var(--text-faint);
+  margin-top: 3px;
+  max-width: 34ch;
+}
+
+.notif-switch {
+  flex: none;
+  width: 44px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 20px;
+  background: var(--line-strong);
+  position: relative;
+  transition: background 0.15s ease;
+}
+
+.notif-switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.15s ease;
+}
+
+.notif-switch[data-on='true'] {
+  background: var(--accent);
+}
+
+.notif-switch[data-on='true']::after {
+  left: 21px;
+}
+
+.notif-switch:disabled {
+  opacity: 0.55;
+}
+
 .theme-toggle {
   display: flex;
   gap: 0;

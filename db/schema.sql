@@ -107,6 +107,22 @@ create table activity (
 
 create index activity_household_recent_idx on activity (household_id, created_at desc);
 
+-- Web push: one row per browser/device per member. Row present == opted in
+-- to the daily reminder on that device.
+create table push_subscriptions (
+  id           uuid primary key default gen_random_uuid(),
+  member_id    uuid not null references members(id) on delete cascade,
+  endpoint     text not null unique,
+  p256dh       text not null,
+  auth         text not null,
+  user_agent   text,
+  created_at   timestamptz not null default now(),
+  last_sent_at timestamptz,
+  fail_count   integer not null default 0
+);
+
+create index push_subscriptions_member_idx on push_subscriptions (member_id);
+
 -- ============================================================
 -- Functions
 -- ============================================================
@@ -120,6 +136,17 @@ CREATE OR REPLACE FUNCTION public.my_household_ids()
  SET search_path TO 'public'
 AS $function$
   select household_id from members where auth_user_id = auth.uid()
+$function$;
+
+-- Returns the member ids owned by the current auth user (one per household).
+-- Used by the push_subscriptions RLS policies.
+CREATE OR REPLACE FUNCTION public.my_member_ids()
+ RETURNS SETOF uuid
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  select id from members where auth_user_id = auth.uid()
 $function$;
 
 -- Core recurrence engine: given a schedule and a cursor date,
@@ -363,6 +390,21 @@ create policy activity_insert on activity for insert to authenticated
 
 create policy activity_delete on activity for delete to authenticated
   using (household_id in (select my_household_ids()));
+
+alter table push_subscriptions enable row level security;
+
+create policy push_sub_select on push_subscriptions for select to authenticated
+  using (member_id in (select my_member_ids()));
+
+create policy push_sub_insert on push_subscriptions for insert to authenticated
+  with check (member_id in (select my_member_ids()));
+
+create policy push_sub_update on push_subscriptions for update to authenticated
+  using (member_id in (select my_member_ids()))
+  with check (member_id in (select my_member_ids()));
+
+create policy push_sub_delete on push_subscriptions for delete to authenticated
+  using (member_id in (select my_member_ids()));
 
 -- ============================================================
 -- Scheduled jobs
