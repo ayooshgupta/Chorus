@@ -61,8 +61,8 @@ export async function sendTestNotification() {
   let result;
   try {
     result = await sendPush(data, {
-      title: '',
-      body: 'Test — notifications are working on this device. ✅',
+      title: 'Test',
+      body: 'Notifications are working on this device. ✅',
       url: '/home',
       tag: 'chorus-test'
     });
