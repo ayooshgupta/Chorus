@@ -59,8 +59,11 @@ export function buildInviteEmail(input: {
   const url = input.appUrl;
 
   const subject = `You're on Chorus — ${household}`;
+  const year = new Date().getFullYear();
 
-  const text = `Hi ${name},
+  const text = `Chorus
+
+Hi ${name},
 
 ${adder} added you to ${household} on Chorus — the app they're using to keep track of shared housework so it's not all living in one person's head.
 
@@ -89,7 +92,10 @@ Open Chorus from the home screen icon (this matters — the option won't show up
 
 Tap any chore to see what it actually involves — most have a short checklist in the notes so there's no guessing what "done" means.
 
-Questions? Ask ${adder}.`;
+Questions? Ask ${adder}.
+
+—
+Designed by APVS Consulting Pty Ltd · © ${year} All rights reserved.`;
 
   const n = escapeHtml(name);
   const h = escapeHtml(household);
@@ -97,6 +103,10 @@ Questions? Ask ${adder}.`;
   const u = escapeHtml(url);
 
   const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px 20px;color:#22201d;">
+  <div style="text-align:center;margin:0 0 28px;">
+    <img src="${u.replace(/\/$/, '')}/chorus-192.png" width="36" height="36" alt="" style="display:inline-block;vertical-align:middle;border-radius:9px;margin-right:8px;">
+    <span style="display:inline-block;vertical-align:middle;font-size:17px;font-weight:600;color:#22201d;">Chorus</span>
+  </div>
   <p style="font-size:15px;line-height:1.6;margin:0 0 16px;">Hi ${n},</p>
   <p style="font-size:15px;line-height:1.6;margin:0 0 16px;"><strong>${a}</strong> added you to <strong>${h}</strong> on Chorus — the app they're using to keep track of shared housework so it's not all living in one person's head.</p>
   <p style="margin:0 0 20px;"><a href="${u}" style="display:inline-block;background:#1d9e75;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:12px 20px;border-radius:10px;">Open Chorus</a></p>
@@ -125,6 +135,8 @@ Questions? Ask ${adder}.`;
   <p style="font-size:14px;line-height:1.6;color:#6b6862;margin:0 0 20px;">Tap any chore to see what it actually involves — most have a short checklist in the notes so there's no guessing what &quot;done&quot; means.</p>
 
   <p style="font-size:13px;color:#9b978f;margin:24px 0 0;">Questions? Ask ${a}.</p>
+
+  <p style="font-size:11px;color:#9b978f;text-align:center;margin:32px 0 0;padding-top:16px;border-top:1px solid rgba(34,32,29,0.1);">Designed by APVS Consulting Pty Ltd · © ${year} All rights reserved.</p>
 </div>`;
 
   return { subject, html, text };
