@@ -6,7 +6,7 @@ export async function GET() {
   return new Response(Buffer.from(ICON_180_B64, 'base64'), {
     headers: {
       'Content-Type': 'image/png',
-      'Cache-Control': 'public, max-age=31536000, immutable'
+      'Cache-Control': 'public, max-age=3600'
     }
   });
 }
