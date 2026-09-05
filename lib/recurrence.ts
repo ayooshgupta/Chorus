@@ -77,12 +77,6 @@ export function currentHourInHouseholdTz(): number {
   return hour ? parseInt(hour, 10) : 0;
 }
 
-export function formatHour(hour: number): string {
-  const period = hour < 12 ? 'am' : 'pm';
-  const twelve = hour % 12 === 0 ? 12 : hour % 12;
-  return `${twelve}:00 ${period}`;
-}
-
 export function shortDate(iso: string): string {
   const d = parseDate(iso);
   return `${WEEKDAY_ABBR[d.getDay()]} ${d.getDate()} ${MONTH_ABBR[d.getMonth()]}`;

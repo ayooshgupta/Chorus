@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { formatHour } from '@/lib/recurrence';
 import {
   deletePushSubscription,
   savePushSubscription,
@@ -10,7 +9,20 @@ import {
 } from './notifications/actions';
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? '';
-const HOURS = Array.from({ length: 24 }, (_, h) => h);
+const HOURS_12 = Array.from({ length: 12 }, (_, i) => i + 1);
+
+type Period = 'am' | 'pm';
+
+function to12Hour(hour24: number): { hour12: number; period: Period } {
+  const period: Period = hour24 < 12 ? 'am' : 'pm';
+  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+  return { hour12, period };
+}
+
+function to24Hour(hour12: number, period: Period): number {
+  const base = hour12 % 12;
+  return period === 'pm' ? base + 12 : base;
+}
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -28,22 +40,32 @@ export default function NotificationsToggle({ initialReminderHour }: { initialRe
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [reminderHour, setReminderHour] = useState(initialReminderHour);
-  const [timeOpen, setTimeOpen] = useState(false);
+  const [hourOpen, setHourOpen] = useState(false);
   const [savingHour, setSavingHour] = useState(false);
   const mounted = useRef(true);
 
-  async function chooseHour(hour: number) {
-    setTimeOpen(false);
-    if (hour === reminderHour) return;
+  const { hour12, period } = to12Hour(reminderHour);
+
+  async function commitHour(hour24: number) {
+    if (hour24 === reminderHour) return;
     const previous = reminderHour;
-    setReminderHour(hour);
+    setReminderHour(hour24);
     setSavingHour(true);
-    const result = await updateReminderHour(hour);
+    const result = await updateReminderHour(hour24);
     setSavingHour(false);
     if (result?.error) {
       setReminderHour(previous);
       setMsg(result.error);
     }
+  }
+
+  function choosePeriod(next: Period) {
+    commitHour(to24Hour(hour12, next));
+  }
+
+  function chooseHour12(next: number) {
+    setHourOpen(false);
+    commitHour(to24Hour(next, period));
   }
 
   useEffect(() => {
@@ -218,28 +240,39 @@ export default function NotificationsToggle({ initialReminderHour }: { initialRe
               <div className="notif-title">Reminder time</div>
               <div className="notif-sub">What time your daily nudge shows up.</div>
             </div>
-            <button
-              type="button"
-              className="house-row"
-              style={{ width: 'auto', marginBottom: 0 }}
-              disabled={savingHour}
-              onClick={() => setTimeOpen((o) => !o)}
-            >
-              {formatHour(reminderHour)}
-            </button>
+            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+              <button
+                type="button"
+                className="house-row"
+                style={{ width: 52, marginBottom: 0, justifyContent: 'center' }}
+                disabled={savingHour}
+                onClick={() => setHourOpen((o) => !o)}
+              >
+                {hour12}
+              </button>
+              <div className="seg" style={{ width: 84 }}>
+                <button type="button" data-on={period === 'am'} disabled={savingHour} onClick={() => choosePeriod('am')}>
+                  AM
+                </button>
+                <button type="button" data-on={period === 'pm'} disabled={savingHour} onClick={() => choosePeriod('pm')}>
+                  PM
+                </button>
+              </div>
+            </div>
           </div>
 
-          {timeOpen ? (
-            <div className="member-popover-grid" style={{ marginTop: 10 }}>
-              {HOURS.map((h) => (
+          {hourOpen ? (
+            <div className="member-popover-grid" style={{ marginTop: 10, gridTemplateColumns: 'repeat(4, 1fr)' }}>
+              {HOURS_12.map((h) => (
                 <button
                   key={h}
                   type="button"
                   className="house-row"
-                  data-on={h === reminderHour}
-                  onClick={() => chooseHour(h)}
+                  style={{ justifyContent: 'center' }}
+                  data-on={h === hour12}
+                  onClick={() => chooseHour12(h)}
                 >
-                  {formatHour(h)}
+                  {h}
                 </button>
               ))}
             </div>
