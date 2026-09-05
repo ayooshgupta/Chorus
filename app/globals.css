@@ -250,6 +250,7 @@ button.google {
   background: var(--surface);
   color: var(--text-soft);
   border: 1px solid var(--line);
+  border-radius: var(--radius);
   width: auto;
   text-align: center;
   cursor: pointer;
