@@ -12,6 +12,7 @@ export type HeaderMembership = {
   householdName: string;
   display_name: string;
   colour: string;
+  reminderHour: number;
 };
 
 type ThemeChoice = 'light' | 'dark' | 'system';
