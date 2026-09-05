@@ -10,12 +10,14 @@
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.48.1",
     "next": "^15",
+    "nodemailer": "^6.9.16",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@types/node": "^22.13.1",
+    "@types/nodemailer": "^6.4.17",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
     "@types/web-push": "^3.6.4",

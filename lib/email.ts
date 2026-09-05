@@ -1,4 +1,4 @@
-const RESEND_API_URL = 'https://api.resend.com/emails';
+import nodemailer from 'nodemailer';
 
 function escapeHtml(value: string): string {
   return value
@@ -8,34 +8,42 @@ function escapeHtml(value: string): string {
     .replace(/"/g, '&quot;');
 }
 
+let transporter: ReturnType<typeof nodemailer.createTransport> | null = null;
+
+function getTransporter() {
+  if (transporter) return transporter;
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_APP_PASSWORD;
+  if (!user || !pass) return null;
+
+  transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user, pass }
+  });
+  return transporter;
+}
+
 export async function sendEmail(input: {
   to: string;
   subject: string;
   html: string;
   text: string;
 }): Promise<{ ok: boolean; error?: string }> {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return { ok: false, error: 'RESEND_API_KEY is not set' };
-
-  const from = process.env.RESEND_FROM || 'Chorus <onboarding@resend.dev>';
+  const user = process.env.GMAIL_USER;
+  const tx = getTransporter();
+  if (!tx || !user) return { ok: false, error: 'GMAIL_USER / GMAIL_APP_PASSWORD are not set' };
 
   try {
-    const res = await fetch(RESEND_API_URL, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ from, to: input.to, subject: input.subject, html: input.html, text: input.text })
+    await tx.sendMail({
+      from: `Chorus <${user}>`,
+      to: input.to,
+      subject: input.subject,
+      html: input.html,
+      text: input.text
     });
-
-    if (!res.ok) {
-      const body = await res.text().catch(() => '');
-      return { ok: false, error: `Resend ${res.status}: ${body.slice(0, 300)}` };
-    }
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Network error sending email' };
+    return { ok: false, error: e instanceof Error ? e.message : 'Error sending email' };
   }
 }
 
