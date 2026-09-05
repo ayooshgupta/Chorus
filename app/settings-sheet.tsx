@@ -231,7 +231,7 @@ export default function SettingsSheet({
 
             <div className="set-group">
               <span className="label">Notifications</span>
-              <NotificationsToggle />
+              <NotificationsToggle initialReminderHour={active.reminderHour} />
             </div>
 
             <div className="set-group">

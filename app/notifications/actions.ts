@@ -1,5 +1,6 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { currentMember } from '@/lib/session';
 import { sendPush } from '@/lib/push';
@@ -76,4 +77,20 @@ export async function sendTestNotification() {
 
   if (result.sent === 0) return { error: 'The push service rejected the test. Try turning reminders off and on.' };
   return { ok: true, sent: result.sent };
+}
+
+export async function updateReminderHour(hour: number) {
+  const me = await currentMember();
+  if (!me) return { error: 'You are not signed in.' };
+  if (!Number.isInteger(hour) || hour < 0 || hour > 23) return { error: 'Not a valid time.' };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('members')
+    .update({ reminder_hour: hour })
+    .eq('id', me.id);
+
+  if (error) return { error: error.message };
+  revalidatePath('/', 'layout');
+  return { ok: true };
 }

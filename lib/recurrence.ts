@@ -66,6 +66,23 @@ export function todayIso(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: HOUSEHOLD_TZ }).format(new Date());
 }
 
+export function currentHourInHouseholdTz(): number {
+  const hour = new Intl.DateTimeFormat('en-US', {
+    timeZone: HOUSEHOLD_TZ,
+    hour: 'numeric',
+    hourCycle: 'h23'
+  })
+    .formatToParts(new Date())
+    .find((p) => p.type === 'hour')?.value;
+  return hour ? parseInt(hour, 10) : 0;
+}
+
+export function formatHour(hour: number): string {
+  const period = hour < 12 ? 'am' : 'pm';
+  const twelve = hour % 12 === 0 ? 12 : hour % 12;
+  return `${twelve}:00 ${period}`;
+}
+
 export function shortDate(iso: string): string {
   const d = parseDate(iso);
   return `${WEEKDAY_ABBR[d.getDay()]} ${d.getDate()} ${MONTH_ABBR[d.getMonth()]}`;

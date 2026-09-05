@@ -1,10 +1,15 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendPush, type PushRow } from '@/lib/push';
-import { todayIso } from '@/lib/recurrence';
+import { currentHourInHouseholdTz, todayIso } from '@/lib/recurrence';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+// Triggered hourly (via Supabase pg_cron + pg_net, not Vercel Cron — see
+// db/schema.sql). Each member picks their own reminder hour, so every call
+// only sends to whoever's chosen hour matches the current one; the rest are
+// silently skipped and picked up on their own hour later.
 
 // iOS always appends " from Chorus" to the title in the pull-down banner and
 // can't be told not to, so keep the title short and put it to work rather than
@@ -27,12 +32,13 @@ export async function GET(req: NextRequest) {
 
   const supabase = createAdminClient();
   const today = todayIso();
+  const currentHour = currentHourInHouseholdTz();
 
   const [{ data: occ, error: occErr }, { data: subs, error: subErr }] = await Promise.all([
     supabase.from('occurrences').select('due_on, chores!inner(household_id)').eq('status', 'open'),
     supabase
       .from('push_subscriptions')
-      .select('id, endpoint, p256dh, auth, members!inner(household_id, archived_at)')
+      .select('id, endpoint, p256dh, auth, members!inner(household_id, archived_at, reminder_hour)')
   ]);
 
   if (occErr || subErr) {
@@ -50,8 +56,13 @@ export async function GET(req: NextRequest) {
 
   const byHousehold = new Map<string, PushRow[]>();
   for (const s of subs ?? []) {
-    const member = s.members as unknown as { household_id: string; archived_at: string | null };
+    const member = s.members as unknown as {
+      household_id: string;
+      archived_at: string | null;
+      reminder_hour: number;
+    };
     if (member.archived_at) continue;
+    if (member.reminder_hour !== currentHour) continue;
     const list = byHousehold.get(member.household_id) ?? [];
     list.push({ id: s.id, endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth });
     byHousehold.set(member.household_id, list);
@@ -84,5 +95,5 @@ export async function GET(req: NextRequest) {
     };
   }
 
-  return NextResponse.json({ ran: today, sent, pruned, households });
+  return NextResponse.json({ ran: today, hour: currentHour, sent, pruned, households });
 }

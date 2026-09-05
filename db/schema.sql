@@ -29,14 +29,15 @@ create table households (
 );
 
 create table members (
-  id           uuid primary key default gen_random_uuid(),
-  household_id uuid not null references households(id) on delete cascade,
-  auth_user_id uuid references auth.users(id),
-  email        text not null check (position('@' in email) > 1),
-  display_name text not null check (length(trim(display_name)) > 0),
-  colour       text not null default '#1D9E75',
-  archived_at  timestamptz,
-  joined_at    timestamptz not null default now()
+  id            uuid primary key default gen_random_uuid(),
+  household_id  uuid not null references households(id) on delete cascade,
+  auth_user_id  uuid references auth.users(id),
+  email         text not null check (position('@' in email) > 1),
+  display_name  text not null check (length(trim(display_name)) > 0),
+  colour        text not null default '#1D9E75',
+  archived_at   timestamptz,
+  joined_at     timestamptz not null default now(),
+  reminder_hour smallint not null default 7 check (reminder_hour between 0 and 23)
 );
 
 -- NOTE: auth_user_id is deliberately NOT unique — one auth user may
@@ -415,4 +416,27 @@ select cron.schedule(
   'sync_all_occurrences',
   '7 * * * *',
   $$select public.sync_all_occurrences()$$
+);
+
+-- Dispatches the daily reminder push hourly, at 10 minutes past. The route
+-- itself filters to members whose reminder_hour matches the current hour
+-- (Australia/Sydney), so each member is actually pushed once a day, at their
+-- own chosen time — this exists to work around Vercel's Hobby-plan limit of
+-- one cron invocation per day, which can't express "whenever it's this
+-- member's hour". The bearer token is pulled from Vault (name: 'cron_secret')
+-- rather than embedded in the job so it isn't stored in plaintext here.
+create extension if not exists pg_net;
+
+select cron.schedule(
+  'hourly_reminder_dispatch',
+  '10 * * * *',
+  $$
+  select net.http_get(
+    url := 'https://chorus-apvs-consulting.vercel.app/api/cron/daily-reminders',
+    headers := jsonb_build_object(
+      'Authorization',
+      'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
+    )
+  );
+  $$
 );

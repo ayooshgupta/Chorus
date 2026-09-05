@@ -2,7 +2,7 @@
 
 This file gives Claude the context it needs to work on this project. Paste your GitHub PAT at the start of each session.
 
-_Last refreshed: 2026-09-05, against commit `accd421` (latest on `main`, matches the live production deployment)._
+_Last refreshed: 2026-09-05, against commit `5a1fffa` (latest on `main`, matches the live production deployment). Per-member reminder timing (below) is committed locally on top of that but not yet pushed/deployed._
 
 ## Dev Loop
 
@@ -42,7 +42,7 @@ app/
   chores/[id]/page.tsx, new/page.tsx       Edit / create chore routes
   notifications/actions.ts                 Save/delete push subscription, send test notification
   notifications-toggle.tsx                 Notification opt-in UI (iOS install detection, permission states)
-  api/cron/daily-reminders/route.ts        Cron: daily due/overdue push digest (20:00 UTC ≈ 7am Sydney)
+  api/cron/daily-reminders/route.ts        Hourly-triggered due/overdue push digest, filtered to each member's own reminder_hour
   api/test/completion-notification/route.ts  Test route: chore-completed push (no real chore needed)
   api/test/invite-email/route.ts           Test route: preview invite email (no real member needed)
   auth/callback/route.ts                   OAuth/magic-link code exchange
@@ -137,8 +137,10 @@ db/
 
 **Push notifications**
 - Web Push via VAPID keys, one `push_subscriptions` row per device/member
-- Daily reminder: cron at 20:00 UTC (~7am Sydney) summarises due-today/overdue counts per household, prunes dead subscriptions (404/410) automatically
+- Daily reminder: each member picks their own hour (`members.reminder_hour`, 0-23, default 7, in Australia/Sydney) via a "Reminder time" picker in the Notifications settings; the digest summarises due-today/overdue counts per household and prunes dead subscriptions (404/410) automatically
+  - Dispatch is hourly, not once a day — Vercel Hobby cron can't express "whenever it's this member's hour", so `app/api/cron/daily-reminders` is instead called every hour by Supabase `pg_cron` + `pg_net` (job `hourly_reminder_dispatch`, `:10` past the hour) and the route itself filters to members whose `reminder_hour` matches the current hour. `vercel.json` no longer defines a cron — this replaced the old fixed 20:00 UTC job entirely.
 - Chore-completed push: sent to every other active, subscribed member when a chore is completed — excludes whoever tapped Complete and whoever got credit; best-effort, never blocks the completion
+- The master "Daily reminder" toggle still controls both notification types together (opting in creates the `push_subscriptions` row both checks rely on) — reminder timing is a separate control that only affects when the daily digest fires, shown once the toggle is on
 - iOS-aware UI states in the toggle: needs Home Screen install, permission blocked, unsupported browser, on/off
 - "Send test notification" button once enabled
 - Test/dev-only routes (both require `CRON_SECRET` bearer token): preview the invite email without a real member row, and fire a completion-style push at a member or whole household without touching chore data
@@ -158,7 +160,10 @@ db/
 - `occurrences.credited_members` (uuid[]) supports shared-credit completions; when null, `completed_by` is the sole credit
 - Weights: Quick(1), Normal(2), Effort(3), Big job(5) — hidden labels in UI
 - `link_member_on_signup()` trigger on `auth.users` links a pre-invited member row (matched by email) to a new auth user on first sign-in
-- Schema file (`db/schema.sql`) is a structure-only rebuild script, captured 2026-08-31 — re-export after significant schema changes
+- `members.reminder_hour` (smallint, 0-23, default 7) — the hour in Australia/Sydney each member wants their daily reminder push
+- Two pg_cron jobs now: `sync_all_occurrences` (hourly, :07) and `hourly_reminder_dispatch` (hourly, :10 — calls the Vercel reminder route via `pg_net`, auth token read from Supabase Vault secret `cron_secret` rather than embedded in the job)
+- `pg_net` extension is enabled (flagged by the security advisor as installed in the `public` schema rather than a dedicated one — cosmetic, not fixed yet, doesn't affect function)
+- Schema file (`db/schema.sql`) is a structure-only rebuild script, captured 2026-08-31, updated 2026-09-05 for `reminder_hour` + the new cron job — re-export after significant schema changes
 
 ## Known env vars (Vercel)
 
@@ -169,4 +174,7 @@ db/
 - Planned bar says "next week" but actually shows overall weekly load derived from recurrence rules — acceptable for now, not a true rolling 4-week forecast
 - Undo (5s toast) can't unsend an already-delivered push notification for the chore-completed ping — a known, accepted trade-off
 - Test routes under `app/api/test/` are dev conveniences gated by `CRON_SECRET`, not meant for end users — fine to leave in place, but don't build user-facing flows on top of them without reconsidering auth
+- `reminder_hour` is a single household-wide timezone assumption (Australia/Sydney, same as `HOUSEHOLD_TZ` everywhere else) — there's no per-user timezone, only per-user hour-of-day within that fixed zone
+- Reminder-hour matching is exact-hour, computed fresh on each hourly cron tick — a Sydney DST transition could in theory cause one hour to be checked twice or skipped once a year; not handled specially, low-stakes enough to leave as-is
+- Some Supabase MCP actions (enabling extensions, writing to Vault) get blocked by the Claude Code auto-mode permission classifier even with correct/safe SQL — needs the session in a non-auto permission mode (or the user running the SQL directly in the Supabase SQL Editor) to get through
 - KeepInTouch and DivvyUp are separate projects under the APVS Consulting umbrella (not part of this repo)

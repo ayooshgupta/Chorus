@@ -1,13 +1,16 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { formatHour } from '@/lib/recurrence';
 import {
   deletePushSubscription,
   savePushSubscription,
-  sendTestNotification
+  sendTestNotification,
+  updateReminderHour
 } from './notifications/actions';
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? '';
+const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -20,11 +23,28 @@ function urlBase64ToUint8Array(base64String: string) {
 
 type State = 'loading' | 'unsupported' | 'needs-install' | 'blocked' | 'off' | 'on';
 
-export default function NotificationsToggle() {
+export default function NotificationsToggle({ initialReminderHour }: { initialReminderHour: number }) {
   const [state, setState] = useState<State>('loading');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [reminderHour, setReminderHour] = useState(initialReminderHour);
+  const [timeOpen, setTimeOpen] = useState(false);
+  const [savingHour, setSavingHour] = useState(false);
   const mounted = useRef(true);
+
+  async function chooseHour(hour: number) {
+    setTimeOpen(false);
+    if (hour === reminderHour) return;
+    const previous = reminderHour;
+    setReminderHour(hour);
+    setSavingHour(true);
+    const result = await updateReminderHour(hour);
+    setSavingHour(false);
+    if (result?.error) {
+      setReminderHour(previous);
+      setMsg(result.error);
+    }
+  }
 
   useEffect(() => {
     mounted.current = true;
@@ -155,10 +175,10 @@ export default function NotificationsToggle() {
   if (state === 'needs-install' || state === 'unsupported' || state === 'blocked') {
     const hint =
       state === 'needs-install'
-        ? 'Add Chorus to your Home Screen, then open it from that icon to turn on reminders.'
+        ? 'Add Chorus to your Home Screen, then open it from that icon to turn on notifications.'
         : state === 'blocked'
           ? 'Notifications are blocked. Turn them on for Chorus in your device settings, then reopen the app.'
-          : "This browser can't do reminders. Try Chrome, or add Chorus to your Home Screen on iPhone.";
+          : "This browser can't do notifications. Try Chrome, or add Chorus to your Home Screen on iPhone.";
     return (
       <div className="notif-row" data-disabled="true">
         <div>
@@ -190,6 +210,43 @@ export default function NotificationsToggle() {
           onClick={on ? disable : enable}
         />
       </div>
+
+      {on ? (
+        <div style={{ marginTop: 14 }}>
+          <div className="notif-row">
+            <div>
+              <div className="notif-title">Reminder time</div>
+              <div className="notif-sub">What time your daily nudge shows up.</div>
+            </div>
+            <button
+              type="button"
+              className="house-row"
+              style={{ width: 'auto', marginBottom: 0 }}
+              disabled={savingHour}
+              onClick={() => setTimeOpen((o) => !o)}
+            >
+              {formatHour(reminderHour)}
+            </button>
+          </div>
+
+          {timeOpen ? (
+            <div className="member-popover-grid" style={{ marginTop: 10 }}>
+              {HOURS.map((h) => (
+                <button
+                  key={h}
+                  type="button"
+                  className="house-row"
+                  data-on={h === reminderHour}
+                  onClick={() => chooseHour(h)}
+                >
+                  {formatHour(h)}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       {on ? (
         <button type="button" className="link-btn" style={{ marginTop: 12 }} disabled={busy} onClick={test}>
           Send test notification

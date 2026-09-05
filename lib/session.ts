@@ -8,6 +8,7 @@ export type Membership = {
   display_name: string;
   colour: string;
   householdName: string;
+  reminderHour: number;
 };
 
 export type Session = {
@@ -27,7 +28,7 @@ export async function loadSession(): Promise<Session | null> {
 
   const { data } = await supabase
     .from('members')
-    .select('id, household_id, display_name, colour, archived_at, households(name)')
+    .select('id, household_id, display_name, colour, archived_at, reminder_hour, households(name)')
     .eq('auth_user_id', user.id)
     .order('joined_at', { ascending: true });
 
@@ -40,7 +41,8 @@ export async function loadSession(): Promise<Session | null> {
       household_id: row.household_id,
       display_name: row.display_name,
       colour: row.colour,
-      householdName: house?.name ?? 'Household'
+      householdName: house?.name ?? 'Household',
+      reminderHour: row.reminder_hour
     };
   });
 
