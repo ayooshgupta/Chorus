@@ -138,7 +138,7 @@ export default function NotificationsToggle() {
   }
 
   const body =
-    "A morning nudge (around 7am) with the household's chores due today and anything overdue.";
+    "A morning nudge with what's due today and anything overdue, plus a ping whenever someone completes a chore.";
 
   if (state === 'loading') {
     return (

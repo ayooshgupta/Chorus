@@ -2,8 +2,58 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { currentMember } from '@/lib/session';
 import { addDays, parseDate, toIso } from '@/lib/recurrence';
+import { sendPush } from '@/lib/push';
+
+// Best-effort push to the rest of the household when a chore is completed.
+// Never blocks the completion itself — failures are just logged.
+async function notifyOthersOfCompletion(input: {
+  householdId: string;
+  choreName: string;
+  occurrenceId: string;
+  actorMemberId: string;
+  creditedMemberIds: string[];
+  supabase: Awaited<ReturnType<typeof createClient>>;
+}) {
+  try {
+    const admin = createAdminClient();
+    const exclude = new Set([input.actorMemberId, ...input.creditedMemberIds]);
+
+    const { data: subs } = await admin
+      .from('push_subscriptions')
+      .select('id, endpoint, p256dh, auth, member_id, members!inner(household_id, archived_at)')
+      .eq('members.household_id', input.householdId)
+      .is('members.archived_at', null);
+
+    const targets = (subs ?? []).filter((s) => !exclude.has(s.member_id));
+    if (targets.length === 0) return;
+
+    const { data: creditedMembers } = await input.supabase
+      .from('members')
+      .select('display_name')
+      .in('id', input.creditedMemberIds);
+    const names = (creditedMembers ?? []).map((m) => m.display_name);
+    const who = names.length ? names.join(' + ') : 'Someone';
+
+    const result = await sendPush(
+      targets.map((s) => ({ id: s.id, endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth })),
+      {
+        title: `${input.choreName} done`,
+        body: `${who} took care of it.`,
+        url: '/home',
+        tag: `chorus-activity-${input.occurrenceId}`
+      }
+    );
+
+    if (result.stale.length) {
+      await admin.from('push_subscriptions').delete().in('id', result.stale);
+    }
+  } catch (e) {
+    console.error('Chore-completed notification failed:', e);
+  }
+}
 
 async function loadContext(occurrenceId: string) {
   const me = await currentMember();
@@ -112,6 +162,15 @@ export async function completeTask(occurrenceId: string, creditToMemberIds?: str
     actor_member_id: me.id,
     action: 'completed',
     detail
+  });
+
+  await notifyOthersOfCompletion({
+    householdId: chore.household_id,
+    choreName: chore.name,
+    occurrenceId,
+    actorMemberId: me.id,
+    creditedMemberIds: credited,
+    supabase
   });
 
   revalidatePath('/home');
