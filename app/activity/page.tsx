@@ -63,7 +63,7 @@ export default async function ActivityPage() {
 
   return (
     <>
-      <TopBar email={session.email} avatarUrl={session.avatarUrl} active={session.active} memberships={session.memberships} />
+      <TopBar avatarUrl={session.avatarUrl} active={session.active} memberships={session.memberships} />
       <main>
         <PageHeader
           householdName={session.active.householdName}

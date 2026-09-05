@@ -49,7 +49,8 @@ app/
   login/page.tsx                           Sign in (Google + magic link)
   setup/                                   First-run household creation, "create another household"
   profile/actions.ts                       Update display name/colour, switch active household
-  settings-sheet.tsx, top-bar.tsx          Profile sheet: name, colour, theme, notifications, household switcher, sign out
+  top-bar.tsx                              Sticky header (wordmark + avatar Link to /settings) — plain server component, no client state
+  settings/page.tsx, profile-settings.tsx, back-button.tsx   Profile settings — full page (not a sheet), same content as before
   nav.tsx                                  Bottom tab bar (Board, Chores, Activity)
   page-header.tsx                          Shared header (household name + optional stat)
   layout.tsx, manifest.ts                  PWA shell, theme cookie bootstrap, manifest
@@ -128,12 +129,14 @@ db/
 - Add member (name, email, colour) → triggers invite email
 - Archived members shown in a dimmed read-only list
 
-**Profile / settings sheet** — `app/settings-sheet.tsx`, `app/top-bar.tsx`
+**Profile settings** — `app/settings/` (full page, not a sheet — see note below)
+- Reached by tapping the avatar in the top bar (a plain `Link` now, not a modal trigger); back button uses `router.back()` with a `/home` fallback, since Settings is reachable equally from Board, Chores, or Activity
 - Display name (save on blur/Enter) and colour picker, with a brief "Saved" confirmation
 - Appearance: Light / Dark / System, persisted via `chorus-theme` cookie, applied pre-hydration in `layout.tsx` to avoid flash
 - Notifications toggle (see below)
 - Household switcher (all memberships) + "Create another household"
 - Sign out
+- **Was previously a bottom sheet** (`app/settings-sheet.tsx`, deleted) triggered from `TopBar`. Converted to a full page 2026-09-05 after it grew too tall on phones to dismiss (its only close affordance was tapping the scrim outside the sheet, and there was no visible "outside" left once Notifications + Reminder time were added). Now matches Household Settings' back-arrow-plus-heading pattern instead of being a one-off modal.
 
 **Push notifications**
 - Web Push via VAPID keys, one `push_subscriptions` row per device/member
@@ -147,8 +150,9 @@ db/
 
 **PWA shell**
 - `manifest.ts` + icons for installability
+- Icon bytes are hardcoded base64 in `lib/pwa-icons.ts`, served by route handlers at `app/chorus-192.png/`, `chorus-512.png/`, `chorus-touch.png/` (folder names, not the reserved `icon`/`apple-icon` Next.js convention). `Cache-Control` is `public, max-age=3600` (changed 2026-09-05 from `max-age=31536000, immutable` — that let one bad first fetch of the apple-touch-icon during "Add to Home Screen" get stuck for a year, on a device or intermediate cache, with no way to self-heal short of clearing site data; an hour-long cache still gets the perf benefit day-to-day but recovers on its own)
 - `public/sw.js`: push-only service worker (no offline caching), click-to-focus/open logic keyed by notification `url`
-- iOS home-screen install is a prerequisite for push (detected and messaged in the notifications toggle)
+- iOS home-screen install is a prerequisite for push (detected and messaged in the notifications toggle) — **must be done from Safari itself**, not an in-app browser (WhatsApp, Instagram, etc.) or Chrome for iOS; those don't reliably register the manifest/icon. If someone's home-screen icon looks broken, that's the first thing to check, then have them remove the icon, clear that site's data (Settings → General → iPhone Storage → Safari → Website Data), and re-add from real Safari.
 
 ## Database Notes
 

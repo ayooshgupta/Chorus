@@ -145,7 +145,7 @@ export default async function Household() {
 
   return (
     <>
-      <TopBar email={session.email} avatarUrl={session.avatarUrl} active={me} memberships={session.memberships} />
+      <TopBar avatarUrl={session.avatarUrl} active={me} memberships={session.memberships} />
       <main>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
           <h1 style={{ margin: 0 }}>{me.householdName}</h1>
