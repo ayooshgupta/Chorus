@@ -238,6 +238,45 @@ button.google {
 .seg {
   display: flex;
   gap: 5px;
+  position: relative;
+}
+
+/* Board member picker — floats over the task list instead of pushing it
+   down, so page height never changes regardless of household size. */
+.member-popover-catcher {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+}
+
+.member-popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--surface-alt);
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 12px 28px -10px rgba(0, 0, 0, 0.35);
+  z-index: 6;
+  animation: fade-in 0.2s ease-out;
+}
+
+[data-theme='dark'] .member-popover {
+  box-shadow: 0 12px 28px -10px rgba(0, 0, 0, 0.7);
+}
+
+.member-popover-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.member-popover-grid .house-row {
+  margin-bottom: 0;
 }
 
 .seg > button {

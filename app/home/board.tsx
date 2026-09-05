@@ -207,7 +207,7 @@ export default function Board({
         {stat}
       </p>
 
-      <div className="seg" style={{ marginBottom: pickerOpen ? 8 : 20 }}>
+      <div className="seg" style={{ marginBottom: 20 }}>
         <button type="button" data-on={mode === 'all'} onClick={chooseAll}>
           Everyone
         </button>
@@ -218,17 +218,27 @@ export default function Board({
         <button type="button" data-on={mode === 'unassigned'} onClick={chooseUnassigned}>
           Unassigned
         </button>
-      </div>
 
-      {pickerOpen ? (
-        <div className="tiles" style={{ marginBottom: 20 }}>
-          {members.map((m) => (
-            <button key={m.id} data-on={memberId === m.id} onClick={() => chooseMember(m.id)}>
-              {nameFor(m.id)}
-            </button>
-          ))}
-        </div>
-      ) : null}
+        {pickerOpen ? (
+          <>
+            <div className="member-popover-catcher" onClick={() => setPickerOpen(false)} />
+            <div className="member-popover">
+              <div className="member-popover-grid">
+                {members.map((m) => (
+                  <button
+                    key={m.id}
+                    className="house-row"
+                    data-on={memberId === m.id}
+                    onClick={() => chooseMember(m.id)}
+                  >
+                    {nameFor(m.id)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        ) : null}
+      </div>
 
       {filteredCount === 0 ? (
         <div className="card">
