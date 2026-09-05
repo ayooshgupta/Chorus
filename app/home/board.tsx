@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useRef } from 'react';
+import { useEffect, useState, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Bucket } from '@/lib/recurrence';
 import { AssignmentIcon } from '@/lib/icons';
@@ -38,27 +38,57 @@ const LABEL: Record<string, string> = {
   adhoc: 'Anyone'
 };
 
+type Filter = 'all' | 'unassigned' | string;
+
 export default function Board({
   tasks,
   sections,
   members,
   meId,
-  weekendIso
+  weekendIso,
+  householdId
 }: {
   tasks: (Task & { bucket: Bucket })[];
   sections: { key: Bucket; label: string; late?: boolean }[];
   members: MemberLite[];
   meId: string;
   weekendIso: string;
+  householdId: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState<Task | null>(null);
   const [showHandOff, setShowHandOff] = useState(false);
   const [creditTo, setCreditTo] = useState<Set<string>>(new Set([meId]));
   const [gone, setGone] = useState<string[]>([]);
+  const [filter, setFilter] = useState<Filter>('all');
   const [, startTransition] = useTransition();
   const [toast, setToast] = useState<ToastData | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const filterKey = `chorus-board-filter-${householdId}`;
+
+  // Restore the last filter chosen on this device — only after mount, so the
+  // server-rendered "Everyone" view never mismatches during hydration.
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(filterKey);
+      if (saved && (saved === 'all' || saved === 'unassigned' || members.some((m) => m.id === saved))) {
+        setFilter(saved);
+      }
+    } catch {
+      // localStorage unavailable — stay on the default
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterKey]);
+
+  function chooseFilter(next: Filter) {
+    setFilter(next);
+    try {
+      window.localStorage.setItem(filterKey, next);
+    } catch {
+      // ignore — filter still applies for this visit
+    }
+  }
 
   function showToast(data: ToastData) {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -110,35 +140,64 @@ export default function Board({
   }
 
   const visible = tasks.filter((t) => !gone.includes(t.id));
+  const filtered = visible.filter((t) => {
+    if (filter === 'all') return true;
+    if (filter === 'unassigned') return t.ownerId === null;
+    return t.ownerId === filter;
+  });
 
-  if (visible.length === 0) {
-    return (
-      <>
-        <div className="card">
-          <div className="empty">Nothing due right now.</div>
-        </div>
-        {toast ? (
-          <div className="toast">
-            <div>
-              <div className="toast-label">
-                {toast.label} {toast.kind === 'completed' ? 'completed' : 'skipped'}
-              </div>
-              {toast.by ? <div className="toast-meta">by {toast.by}</div> : null}
-            </div>
-            <button className="toast-undo" onClick={handleUndo}>
-              Undo
-            </button>
-          </div>
-        ) : null}
-      </>
-    );
+  const filteredCount = filtered.length;
+  const thing = filteredCount === 1 ? 'thing' : 'things';
+  let stat: string;
+  if (filter === 'all') {
+    stat = filteredCount === 0 ? 'Nothing due. Enjoy it.' : `${filteredCount} ${thing} to get to`;
+  } else if (filter === 'unassigned') {
+    stat =
+      filteredCount === 0
+        ? "Nothing's unclaimed."
+        : `${filteredCount} ${thing} need${filteredCount === 1 ? 's' : ''} a taker`;
+  } else {
+    const person = filter === meId ? 'you' : (members.find((m) => m.id === filter)?.name ?? 'them');
+    stat = filteredCount === 0 ? `Nothing for ${person}.` : `${filteredCount} ${thing} for ${person}`;
   }
 
   return (
     <>
-      {sections.map((section) => {
-        const items = visible.filter((t) => t.bucket === section.key);
-        if (items.length === 0) return null;
+      <p className="sub" style={{ margin: '0 0 14px' }}>
+        {stat}
+      </p>
+
+      <div className="seg" style={{ marginBottom: 20 }}>
+        <button type="button" data-on={filter === 'all'} onClick={() => chooseFilter('all')}>
+          Everyone
+        </button>
+        <select
+          data-on={filter !== 'all' && filter !== 'unassigned'}
+          value={filter === 'all' || filter === 'unassigned' ? '' : filter}
+          onChange={(e) => {
+            if (e.target.value) chooseFilter(e.target.value);
+          }}
+        >
+          <option value="">Member</option>
+          {members.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.id === meId ? `${m.name} (you)` : m.name}
+            </option>
+          ))}
+        </select>
+        <button type="button" data-on={filter === 'unassigned'} onClick={() => chooseFilter('unassigned')}>
+          Unassigned
+        </button>
+      </div>
+
+      {filteredCount === 0 ? (
+        <div className="card">
+          <div className="empty">Nothing due right now.</div>
+        </div>
+      ) : (
+        sections.map((section) => {
+          const items = filtered.filter((t) => t.bucket === section.key);
+          if (items.length === 0) return null;
 
         return (
           <div key={section.key}>
@@ -219,7 +278,8 @@ export default function Board({
             </div>
           </div>
         );
-      })}
+        })
+      )}
 
       {open ? (
         <div

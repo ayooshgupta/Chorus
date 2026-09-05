@@ -124,14 +124,7 @@ export default async function HomePage() {
     <>
       <TopBar email={session.email} avatarUrl={session.avatarUrl} active={me} memberships={session.memberships} />
       <main>
-        <PageHeader
-          householdName={me.householdName}
-          stat={
-            tasks.length === 0
-              ? 'Nothing due. Enjoy it.'
-              : `${tasks.length} ${tasks.length === 1 ? 'thing' : 'things'} to get to`
-          }
-        />
+        <PageHeader householdName={me.householdName} />
 
         <Board
           tasks={tasks}
@@ -139,6 +132,7 @@ export default async function HomePage() {
           members={memberList}
           meId={me.id}
           weekendIso={nextWeekendIso(today)}
+          householdId={me.household_id}
         />
       </main>
       <Nav />
