@@ -240,38 +240,27 @@ button.google {
   gap: 5px;
 }
 
-.seg > button,
-.seg > select {
+.seg > button {
   flex: 1;
   padding: 9px 2px;
   font-size: 13px;
   font-weight: 400;
-  font-family: inherit;
   background: var(--surface);
   color: var(--text-soft);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
   width: auto;
-  text-align: center;
-  cursor: pointer;
 }
 
-.seg > select {
-  appearance: none;
-  -webkit-appearance: none;
-  padding-right: 18px;
-  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
-    linear-gradient(135deg, currentColor 50%, transparent 50%);
-  background-position: calc(50% + 22px) center, calc(50% + 27px) center;
-  background-size: 5px 5px, 5px 5px;
-  background-repeat: no-repeat;
-}
-
-.seg > button[data-on='true'],
-.seg > select[data-on='true'] {
+.seg > button[data-on='true'] {
   background: var(--accent-bg);
   color: var(--accent-text);
   border-color: var(--accent);
+}
+
+.seg > button .chev {
+  opacity: 0.6;
+  margin-left: 2px;
+  font-size: 10px;
 }
 
 .days {

@@ -38,7 +38,7 @@ const LABEL: Record<string, string> = {
   adhoc: 'Anyone'
 };
 
-type Filter = 'all' | 'unassigned' | string;
+type Mode = 'all' | 'unassigned' | 'member';
 
 export default function Board({
   tasks,
@@ -60,7 +60,11 @@ export default function Board({
   const [showHandOff, setShowHandOff] = useState(false);
   const [creditTo, setCreditTo] = useState<Set<string>>(new Set([meId]));
   const [gone, setGone] = useState<string[]>([]);
-  const [filter, setFilter] = useState<Filter>('all');
+  const [mode, setMode] = useState<Mode>('all');
+  // The last member picked — kept even while Everyone/Unassigned is active,
+  // so switching back to Member re-applies them without reopening the picker.
+  const [memberId, setMemberId] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [, startTransition] = useTransition();
   const [toast, setToast] = useState<ToastData | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -71,23 +75,59 @@ export default function Board({
   // server-rendered "Everyone" view never mismatches during hydration.
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem(filterKey);
-      if (saved && (saved === 'all' || saved === 'unassigned' || members.some((m) => m.id === saved))) {
-        setFilter(saved);
-      }
+      const raw = window.localStorage.getItem(filterKey);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { mode?: string; memberId?: string | null };
+      const validMember =
+        saved.memberId && members.some((m) => m.id === saved.memberId) ? saved.memberId : null;
+      if (validMember) setMemberId(validMember);
+      if (saved.mode === 'unassigned') setMode('unassigned');
+      else if (saved.mode === 'member' && validMember) setMode('member');
     } catch {
-      // localStorage unavailable — stay on the default
+      // localStorage unavailable, or nothing saved yet — stay on the default
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterKey]);
 
-  function chooseFilter(next: Filter) {
-    setFilter(next);
+  function persist(nextMode: Mode, nextMemberId: string | null) {
     try {
-      window.localStorage.setItem(filterKey, next);
+      window.localStorage.setItem(filterKey, JSON.stringify({ mode: nextMode, memberId: nextMemberId }));
     } catch {
       // ignore — filter still applies for this visit
     }
+  }
+
+  function chooseAll() {
+    setMode('all');
+    setPickerOpen(false);
+    persist('all', memberId);
+  }
+
+  function chooseUnassigned() {
+    setMode('unassigned');
+    setPickerOpen(false);
+    persist('unassigned', memberId);
+  }
+
+  function chooseMember(id: string) {
+    setMode('member');
+    setMemberId(id);
+    setPickerOpen(false);
+    persist('member', id);
+  }
+
+  function tapMemberSegment() {
+    if (mode === 'member') {
+      setPickerOpen((o) => !o);
+    } else {
+      chooseMember(memberId ?? meId);
+    }
+  }
+
+  function nameFor(id: string) {
+    const m = members.find((mm) => mm.id === id);
+    if (!m) return 'Member';
+    return id === meId ? `${m.name} (you)` : m.name;
   }
 
   function showToast(data: ToastData) {
@@ -141,23 +181,23 @@ export default function Board({
 
   const visible = tasks.filter((t) => !gone.includes(t.id));
   const filtered = visible.filter((t) => {
-    if (filter === 'all') return true;
-    if (filter === 'unassigned') return t.ownerId === null;
-    return t.ownerId === filter;
+    if (mode === 'all') return true;
+    if (mode === 'unassigned') return t.ownerId === null;
+    return t.ownerId === memberId;
   });
 
   const filteredCount = filtered.length;
   const thing = filteredCount === 1 ? 'thing' : 'things';
   let stat: string;
-  if (filter === 'all') {
+  if (mode === 'all') {
     stat = filteredCount === 0 ? 'Nothing due. Enjoy it.' : `${filteredCount} ${thing} to get to`;
-  } else if (filter === 'unassigned') {
+  } else if (mode === 'unassigned') {
     stat =
       filteredCount === 0
         ? "Nothing's unclaimed."
         : `${filteredCount} ${thing} need${filteredCount === 1 ? 's' : ''} a taker`;
   } else {
-    const person = filter === meId ? 'you' : (members.find((m) => m.id === filter)?.name ?? 'them');
+    const person = memberId === meId ? 'you' : (members.find((m) => m.id === memberId)?.name ?? 'them');
     stat = filteredCount === 0 ? `Nothing for ${person}.` : `${filteredCount} ${thing} for ${person}`;
   }
 
@@ -167,28 +207,28 @@ export default function Board({
         {stat}
       </p>
 
-      <div className="seg" style={{ marginBottom: 20 }}>
-        <button type="button" data-on={filter === 'all'} onClick={() => chooseFilter('all')}>
+      <div className="seg" style={{ marginBottom: pickerOpen ? 8 : 20 }}>
+        <button type="button" data-on={mode === 'all'} onClick={chooseAll}>
           Everyone
         </button>
-        <select
-          data-on={filter !== 'all' && filter !== 'unassigned'}
-          value={filter === 'all' || filter === 'unassigned' ? '' : filter}
-          onChange={(e) => {
-            if (e.target.value) chooseFilter(e.target.value);
-          }}
-        >
-          <option value="">Member</option>
-          {members.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.id === meId ? `${m.name} (you)` : m.name}
-            </option>
-          ))}
-        </select>
-        <button type="button" data-on={filter === 'unassigned'} onClick={() => chooseFilter('unassigned')}>
+        <button type="button" data-on={mode === 'member'} onClick={tapMemberSegment}>
+          {memberId ? nameFor(memberId) : 'Member'}
+          {mode === 'member' ? <span className="chev">▾</span> : null}
+        </button>
+        <button type="button" data-on={mode === 'unassigned'} onClick={chooseUnassigned}>
           Unassigned
         </button>
       </div>
+
+      {pickerOpen ? (
+        <div className="tiles" style={{ marginBottom: 20 }}>
+          {members.map((m) => (
+            <button key={m.id} data-on={memberId === m.id} onClick={() => chooseMember(m.id)}>
+              {nameFor(m.id)}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       {filteredCount === 0 ? (
         <div className="card">
