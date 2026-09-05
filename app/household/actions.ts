@@ -3,6 +3,9 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { currentMember } from '@/lib/session';
+import { buildInviteEmail, sendEmail } from '@/lib/email';
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://chorus-apvs-consulting.vercel.app';
 
 export async function addMember(input: {
   householdId: string;
@@ -10,6 +13,7 @@ export async function addMember(input: {
   email: string;
   colour: string;
 }) {
+  const me = await currentMember();
   const supabase = await createClient();
 
   const { error } = await supabase.from('members').insert({
@@ -26,6 +30,21 @@ export async function addMember(input: {
 
   revalidatePath('/household');
   revalidatePath('/household/settings');
+
+  // Best-effort invite email — the member is added either way.
+  try {
+    const { subject, html, text } = buildInviteEmail({
+      displayName: input.displayName,
+      householdName: me?.householdName ?? 'Chorus',
+      addedByName: me?.display_name ?? 'Someone',
+      appUrl: APP_URL
+    });
+    const result = await sendEmail({ to: input.email, subject, html, text });
+    if (!result.ok) console.error('Invite email failed:', result.error);
+  } catch (e) {
+    console.error('Invite email failed:', e);
+  }
+
   return { ok: true };
 }
 
