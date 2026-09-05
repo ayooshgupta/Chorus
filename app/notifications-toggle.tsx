@@ -244,7 +244,7 @@ export default function NotificationsToggle({ initialReminderHour }: { initialRe
               <button
                 type="button"
                 className="house-row"
-                style={{ width: 52, marginBottom: 0, justifyContent: 'center' }}
+                style={{ width: 52, marginBottom: 0, justifyContent: 'center', fontSize: 13 }}
                 disabled={savingHour}
                 onClick={() => setHourOpen((o) => !o)}
               >
@@ -268,7 +268,7 @@ export default function NotificationsToggle({ initialReminderHour }: { initialRe
                   key={h}
                   type="button"
                   className="house-row"
-                  style={{ justifyContent: 'center' }}
+                  style={{ justifyContent: 'center', fontSize: 13 }}
                   data-on={h === hour12}
                   onClick={() => chooseHour12(h)}
                 >
