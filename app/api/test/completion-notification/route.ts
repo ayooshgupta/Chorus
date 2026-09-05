@@ -6,16 +6,20 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // One-off way to test the chore-completed push without touching any real
-// chore/occurrence data. Sends to every active push subscription in the
-// given household, minus anyone in ?exclude=. Protected by CRON_SECRET.
+// chore/occurrence data. Pass ?member=<id> to target just one person, or
+// ?household=<id> (optionally with ?exclude=<id,id>) to send to everyone
+// currently subscribed in that household. Protected by CRON_SECRET.
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get('authorization') !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const memberId = req.nextUrl.searchParams.get('member');
   const householdId = req.nextUrl.searchParams.get('household');
-  if (!householdId) return NextResponse.json({ error: 'Add ?household=<id>' }, { status: 400 });
+  if (!memberId && !householdId) {
+    return NextResponse.json({ error: 'Add ?member=<id> or ?household=<id>' }, { status: 400 });
+  }
 
   const choreName = req.nextUrl.searchParams.get('chore') || 'Test chore';
   const who = req.nextUrl.searchParams.get('who') || 'Someone';
@@ -28,11 +32,14 @@ export async function GET(req: NextRequest) {
 
   const admin = createAdminClient();
 
-  const { data: subs, error } = await admin
+  const query = admin
     .from('push_subscriptions')
     .select('id, endpoint, p256dh, auth, member_id, members!inner(household_id, archived_at)')
-    .eq('members.household_id', householdId)
     .is('members.archived_at', null);
+
+  const { data: subs, error } = memberId
+    ? await query.eq('member_id', memberId)
+    : await query.eq('members.household_id', householdId as string);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
